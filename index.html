@@ -35,15 +35,11 @@
     padding: 16px;
   }
   .form { padding: 16px; }
-  .brand { margin-bottom: 14px; }
+  .brand { margin-bottom: 16px; }
   .brandLogo { display: block; width: 100%; max-width: 210px; height: auto; }
   .brandName {
     font-size: 17px; font-weight: 700; color: #fff; letter-spacing: 0.03em;
     line-height: 1.15;
-  }
-  .brandSub {
-    font-size: 10px; color: #8a8a93; margin-top: 8px;
-    text-transform: uppercase; letter-spacing: 0.09em;
   }
   .testsList { overflow: hidden; }
 
@@ -335,6 +331,93 @@
   }
   .reportBtn.primary { background-color: #18181b; color: #fff; border-color: #18181b; }
 
+
+  /* --- dark theme: scoped to .container so printed reports stay light --- */
+  html[data-theme="dark"] body { background-color: #09090b; color: #e4e4e7; }
+  html[data-theme="dark"] .container { background-color: #09090b; }
+  html[data-theme="dark"] .form,
+  html[data-theme="dark"] .testsList {
+    background-color: #141417; border-color: #27272a;
+  }
+  html[data-theme="dark"] .stat { background-color: #1c1c1f; }
+  html[data-theme="dark"] label.label { color: #8f8f99; }
+  html[data-theme="dark"] input.field,
+  html[data-theme="dark"] textarea.field,
+  html[data-theme="dark"] select.field {
+    background-color: #1c1c1f; border-color: #3f3f46; color: #f4f4f5;
+  }
+  html[data-theme="dark"] input.field:focus,
+  html[data-theme="dark"] textarea.field:focus { outline-color: #a1a1aa; }
+  html[data-theme="dark"] .chip {
+    background-color: #1c1c1f; border-color: #3f3f46; color: #d4d4d8;
+  }
+  html[data-theme="dark"] .chip.active {
+    background-color: #f4f4f5; border-color: #f4f4f5; color: #18181b;
+  }
+  html[data-theme="dark"] .typeButton,
+  html[data-theme="dark"] .toggleButton,
+  html[data-theme="dark"] .panelToggle,
+  html[data-theme="dark"] .reportBtn,
+  html[data-theme="dark"] .clearButton,
+  html[data-theme="dark"] .editRow button,
+  html[data-theme="dark"] .editActions button {
+    background-color: #1c1c1f; border-color: #3f3f46; color: #a1a1aa;
+  }
+  html[data-theme="dark"] .panelToggle { color: #d4d4d8; }
+  html[data-theme="dark"] .typeButton.active,
+  html[data-theme="dark"] .reportBtn.primary,
+  html[data-theme="dark"] .editRow button.on,
+  html[data-theme="dark"] .editActions button.save,
+  html[data-theme="dark"] .exportButton {
+    background-color: #f4f4f5; border-color: #f4f4f5; color: #18181b;
+  }
+  html[data-theme="dark"] .editButton { background-color: #27272a; color: #d4d4d8; }
+  html[data-theme="dark"] .deleteButton { background-color: #3f1416; color: #fca5a5; }
+  html[data-theme="dark"] .listTitle { color: #f4f4f5; }
+  html[data-theme="dark"] .listHeader { border-color: #27272a; }
+  html[data-theme="dark"] .testItem { border-bottom-color: #1f1f23; }
+  html[data-theme="dark"] .testAppliance { color: #f4f4f5; }
+  html[data-theme="dark"] .followName { color: #f4f4f5; }
+  html[data-theme="dark"] .typeBadge { background-color: #27272a; color: #d4d4d8; }
+  html[data-theme="dark"] .tagText { color: #d4d4d8; }
+  html[data-theme="dark"] .testNotes { color: #a1a1aa; border-left-color: #3f3f46; }
+  html[data-theme="dark"] .checkItem { color: #d4d4d8; }
+  html[data-theme="dark"] .addPhoto { background-color: #1c1c1f; border-color: #52525b; }
+  html[data-theme="dark"] .followDone { background-color: #052e16; }
+  html[data-theme="dark"] .followTodo { background-color: #3f1416; color: #fca5a5; }
+  html[data-theme="dark"] .failBadge { background-color: #3f1416; color: #fca5a5; }
+  html[data-theme="dark"] .statNumber { color: #fafafa; }
+  html[data-theme="dark"] .settingRow { border-color: #27272a; }
+  html[data-theme="dark"] .settingLabel { color: #e4e4e7; }
+
+  /* --- settings --- */
+  .settingRow { padding: 12px 16px; border-bottom: 1px solid #f4f4f5; }
+  .settingRow:last-child { border-bottom: none; }
+  .settingLabel { font-size: 13px; font-weight: 600; color: #18181b; margin-bottom: 3px; }
+  .settingHint { font-size: 11px; color: #a1a1aa; line-height: 1.45; margin-bottom: 9px; }
+  .segRow { display: flex; gap: 6px; }
+  .segRow button {
+    flex: 1; padding: 9px 4px; border: 1px solid #d4d4d8; background-color: #fff;
+    border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
+    color: #71717a; font-family: inherit;
+  }
+  .segRow button.on { background-color: #18181b; color: #fff; border-color: #18181b; }
+  html[data-theme="dark"] .segRow button {
+    background-color: #1c1c1f; border-color: #3f3f46; color: #a1a1aa;
+  }
+  html[data-theme="dark"] .segRow button.on {
+    background-color: #f4f4f5; color: #18181b; border-color: #f4f4f5;
+  }
+  .dataBtns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .dataBtns button {
+    padding: 8px 11px; border: 1px solid #d4d4d8; background-color: #fff;
+    border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer;
+    color: #3f3f46; font-family: inherit;
+  }
+  html[data-theme="dark"] .dataBtns button {
+    background-color: #1c1c1f; border-color: #3f3f46; color: #d4d4d8;
+  }
+
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
@@ -344,7 +427,6 @@
   <div class="header">
     <div class="brand">
       <img class="brandLogo" src="./logo.png" alt="Test Tag Melbourne">
-      <div class="brandSub">Test &amp; tag logger</div>
     </div>
     <div class="stats">
       <div class="stat"><span class="statNumber" id="countTotal">0</span><span class="statLabel">Tested</span></div>
@@ -454,6 +536,45 @@
     <div class="storageNote">Opens the print dialog. On iPhone choose Print, then pinch the preview and share it as a PDF.</div>
   </div>
 
+  <button class="panelToggle" id="settingsToggle">
+    <span>Settings</span>
+    <span class="caret" id="settingsCaret">&#9660;</span>
+  </button>
+  <div class="testsList panelBody" id="settingsPanel" style="margin-bottom:16px">
+    <div class="settingRow">
+      <div class="settingLabel">Appearance</div>
+      <div class="settingHint">System follows your phone's light or dark setting.</div>
+      <div class="segRow" id="themeRow">
+        <button data-theme-opt="system">System</button>
+        <button data-theme-opt="light">Light</button>
+        <button data-theme-opt="dark">Dark</button>
+      </div>
+    </div>
+
+    <div class="settingRow">
+      <div class="settingLabel">Restore from CSV</div>
+      <div class="settingHint">Loads records from a previously exported CSV. Existing entries
+        are skipped, so importing the same file twice is safe. Photos are not in the CSV.</div>
+      <div class="dataBtns">
+        <button id="importBtn">Choose CSV file</button>
+      </div>
+    </div>
+
+    <div class="settingRow">
+      <div class="settingLabel">Storage</div>
+      <div class="settingHint" id="storageStat">&nbsp;</div>
+      <div class="dataBtns">
+        <button id="clearPhotosBtn">Clear all photos</button>
+        <button id="clearItemsBtn">Clear remembered items</button>
+      </div>
+    </div>
+
+    <div class="settingRow">
+      <div class="settingLabel">About</div>
+      <div class="settingHint" id="aboutText">&nbsp;</div>
+    </div>
+  </div>
+
   <div class="testsList" id="followList" style="display:none">
     <div class="listHeader">
       <h2 class="listTitle">Failed items — follow up</h2>
@@ -508,6 +629,7 @@
     model: '',
     serial: '',
     itemTypes: {},
+    theme: 'system',
     instrument: 'Aegis Patrol Pro CZ5001 portable appliance tester',
     calibration: 'Jul 2026'
   };
@@ -640,6 +762,7 @@
       if (typeof data.technician === 'string') state.technician = data.technician;
       state.client = data.client || '';
       state.jobRef = data.jobRef || '';
+      if (data.theme) state.theme = data.theme;
       if (data.instrument) state.instrument = data.instrument;
       if (data.calibration) state.calibration = data.calibration;
     } catch (e) {
@@ -1607,6 +1730,179 @@
     printHTML(certificateHTML(ctx) + conciseHTML(ctx) + failHTML(ctx));
   }
 
+
+  // ================= settings =================
+
+  var APP_VERSION = 'v18';
+
+  function applyTheme() {
+    var pref = state.theme || 'system';
+    var dark = pref === 'dark' || (pref === 'system' &&
+      window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', dark ? '#09090b' : '#18181b');
+    document.querySelectorAll('[data-theme-opt]').forEach(function (b) {
+      b.classList.toggle('on', b.getAttribute('data-theme-opt') === pref);
+    });
+  }
+
+  if (window.matchMedia) {
+    var mq = window.matchMedia('(prefers-color-scheme: dark)');
+    if (mq.addEventListener) mq.addEventListener('change', function () {
+      if ((state.theme || 'system') === 'system') applyTheme();
+    });
+  }
+
+  function photoBytes() {
+    var n = 0;
+    state.tests.forEach(function (t) {
+      (t.photos || []).forEach(function (p) { n += p.length; });
+    });
+    return n;
+  }
+
+  function renderSettings() {
+    var total = 0;
+    try { total = (localStorage.getItem(STORAGE_KEY) || '').length; } catch (e) {}
+    var photos = photoBytes();
+    var count = state.tests.reduce(function (a, t) {
+      return a + ((t.photos || []).length);
+    }, 0);
+
+    document.getElementById('storageStat').textContent =
+      (total / 1048576).toFixed(2) + ' MB used of roughly 5 MB. ' +
+      count + (count === 1 ? ' photo' : ' photos') +
+      ' accounting for ' + (photos / 1048576).toFixed(2) + ' MB. ' +
+      state.recentItems.length + ' remembered item names.';
+
+    document.getElementById('aboutText').textContent =
+      COMPANY.name + ' \u00b7 ABN ' + COMPANY.abn + ' \u00b7 app ' + APP_VERSION +
+      ' \u00b7 ' + state.tests.length + ' records held on this device.';
+  }
+
+  // Minimal CSV reader: handles quoted fields, doubled quotes and CRLF.
+  function parseCSV(text) {
+    var rows = [], row = [], field = '', inQuotes = false;
+    text = text.replace(/^\ufeff/, '');
+    for (var i = 0; i < text.length; i++) {
+      var c = text[i];
+      if (inQuotes) {
+        if (c === '"') {
+          if (text[i + 1] === '"') { field += '"'; i++; } else { inQuotes = false; }
+        } else { field += c; }
+      } else if (c === '"') {
+        inQuotes = true;
+      } else if (c === ',') {
+        row.push(field); field = '';
+      } else if (c === '\n') {
+        row.push(field); field = ''; rows.push(row); row = [];
+      } else if (c !== '\r') {
+        field += c;
+      }
+    }
+    if (field.length || row.length) { row.push(field); rows.push(row); }
+    return rows.filter(function (r) { return r.some(function (v) { return v !== ''; }); });
+  }
+
+  function importCSV(text) {
+    var rows = parseCSV(text);
+    if (rows.length < 2) { alert('That file has no records in it.'); return; }
+
+    var head = rows[0].map(function (h) { return h.trim(); });
+    var col = {};
+    head.forEach(function (h, i) { col[h] = i; });
+
+    if (col['Asset ID'] === undefined || col['Description'] === undefined) {
+      alert('That does not look like a logger export. Expected Asset ID and Description columns.');
+      return;
+    }
+
+    var existing = {};
+    state.tests.forEach(function (t) {
+      existing[[t.tagNumber, t.dateIso, t.appliance].join('|')] = true;
+    });
+
+    var added = 0, skipped = 0;
+    var get = function (r, name) {
+      var i = col[name];
+      return i === undefined ? '' : (r[i] || '').trim();
+    };
+
+    rows.slice(1).forEach(function (r) {
+      var tag = get(r, 'Asset ID');
+      var name = get(r, 'Description');
+      var iso = get(r, 'Test Date ISO');
+      if (!name) return;
+      if (existing[[tag, iso, name].join('|')]) { skipped++; return; }
+
+      var failedRaw = get(r, 'Failed Inspection Items');
+      var failed = failedRaw ? failedRaw.split(';').map(function (x) { return x.trim(); })
+                                       .filter(Boolean) : [];
+      // fall back to the per-item columns when the summary column is absent
+      if (!failed.length) {
+        INSPECTION_ITEMS.forEach(function (item) {
+          if (get(r, item).toLowerCase() === 'fail') failed.push(item);
+        });
+      }
+      var months = Number(get(r, 'Test Period').replace(/[^0-9]/g, '')) || retestMonths(tag);
+
+      state.tests.push({
+        id: Date.now() + Math.floor(Math.random() * 100000),
+        appliance: name,
+        client: get(r, 'Client'),
+        site: get(r, 'Site'),
+        location: get(r, 'Location'),
+        jobRef: get(r, 'Job Reference'),
+        technician: get(r, 'Technician'),
+        testType: get(r, 'Test Type') || 'Class 1',
+        result: get(r, 'Result').toUpperCase() === 'FAIL' ? 'fail' : 'pass',
+        tagNumber: tag,
+        date: get(r, 'Test Date'),
+        dateIso: iso,
+        time: get(r, 'Time'),
+        retestMonths: months || null,
+        nextTestDisplay: get(r, 'Next Test Date'),
+        nextTestIso: get(r, 'Next Test Date ISO'),
+        make: get(r, 'Make'),
+        model: get(r, 'Model'),
+        serial: get(r, 'Serial Number'),
+        polarity: get(r, 'Polarity'),
+        passedItems: INSPECTION_ITEMS.filter(function (i) { return failed.indexOf(i) === -1; }),
+        failedItems: failed,
+        failReason: get(r, 'Fail Reason'),
+        actionTaken: get(r, 'Action Taken'),
+        reportedTo: get(r, 'Reported To'),
+        photos: [],
+        notes: get(r, 'Notes')
+      });
+
+      if (name && state.recentItems.indexOf(name) === -1) {
+        state.recentItems.unshift(name);
+      }
+      state.itemTypes[name.toLowerCase()] = get(r, 'Test Type') || 'Class 1';
+      added++;
+    });
+
+    state.recentItems = state.recentItems.slice(0, MAX_REMEMBERED);
+    // newest first, matching how entries are logged
+    state.tests.sort(function (a, b) {
+      return String(b.dateIso || '').localeCompare(String(a.dateIso || '')) ||
+             (b.id - a.id);
+    });
+
+    try {
+      save();
+    } catch (e) {
+      alert('Import too large for storage. Clear photos or logged tests first.');
+      return;
+    }
+
+    renderChips(); renderList(); renderFollowUp(); renderSettings();
+    alert('Imported ' + added + (added === 1 ? ' record' : ' records') +
+          (skipped ? ', skipped ' + skipped + ' already present.' : '.'));
+  }
+
   // --- events ---
   el.appliance.addEventListener('input', function () {
     state.appliance = this.value; renderChips(); predictType(); save();
@@ -1735,6 +2031,52 @@
     if (body) document.getElementById('fb-' + t.id).classList.add('open');
   });
 
+  document.getElementById('themeRow').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-theme-opt]');
+    if (!b) return;
+    state.theme = b.getAttribute('data-theme-opt');
+    applyTheme();
+    save();
+  });
+
+  document.getElementById('importBtn').addEventListener('click', function () {
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv,text/csv,text/plain';
+    input.addEventListener('change', function () {
+      var f = this.files && this.files[0];
+      if (!f) return;
+      var r = new FileReader();
+      r.onload = function () { importCSV(String(r.result)); };
+      r.onerror = function () { alert('Could not read that file.'); };
+      r.readAsText(f);
+    });
+    input.click();
+  });
+
+  document.getElementById('clearPhotosBtn').addEventListener('click', function () {
+    var n = state.tests.reduce(function (a, t) { return a + ((t.photos || []).length); }, 0);
+    if (!n) { alert('There are no photos stored.'); return; }
+    if (!confirm('Delete all ' + n + (n === 1 ? ' photo' : ' photos') + '?\n\n' +
+                 'Test records are kept. Export the zip first if you still need them.')) return;
+    state.tests.forEach(function (t) { t.photos = []; });
+    renderFollowUp(); renderSettings(); save();
+  });
+
+  document.getElementById('clearItemsBtn').addEventListener('click', function () {
+    if (!state.recentItems.length) { alert('There are no remembered item names.'); return; }
+    if (!confirm('Forget all ' + state.recentItems.length + ' remembered item names?\n\n' +
+                 'Logged tests and the test-type memory are kept.')) return;
+    state.recentItems = [];
+    renderChips(); renderSettings(); save();
+  });
+
+  document.getElementById('settingsToggle').addEventListener('click', function () {
+    togglePanel(document.getElementById('settingsPanel'),
+                document.getElementById('settingsCaret'));
+    renderSettings();
+  });
+
   document.getElementById('assetToggle').addEventListener('click', function () {
     togglePanel(el.assetPanel, el.assetCaret);
   });
@@ -1860,6 +2202,8 @@
   renderTypeSelector();
   renderList();
   renderFollowUp();
+  applyTheme();
+  renderSettings();
 
   // Prompt job setup on a fresh start; stay out of the way once it's filled in.
   if (!state.client && !state.site && !state.jobRef) {
