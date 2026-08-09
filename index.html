@@ -458,6 +458,9 @@
     <label class="label" for="calibration">Instrument calibration</label>
     <input class="field" type="text" id="calibration" autocomplete="off">
 
+    <label class="label" for="competency">Competency (optional)</label>
+    <input class="field" type="text" id="competency" autocomplete="off">
+
     <button class="toggleButton" id="newJobBtn">Start new job</button>
   </div>
 
@@ -629,6 +632,7 @@
     model: '',
     serial: '',
     itemTypes: {},
+    competency: '',
     theme: 'system',
     instrument: 'Aegis Patrol Pro CZ5001 portable appliance tester',
     calibration: 'Jul 2026'
@@ -698,6 +702,7 @@
     storageNote: document.getElementById('storageNote'),
     instrument: document.getElementById('instrument'),
     calibration: document.getElementById('calibration'),
+    competency: document.getElementById('competency'),
     reportsCard: document.getElementById('reportsCard')
   };
 
@@ -762,6 +767,7 @@
       if (typeof data.technician === 'string') state.technician = data.technician;
       state.client = data.client || '';
       state.jobRef = data.jobRef || '';
+      if (typeof data.competency === 'string') state.competency = data.competency;
       if (data.theme) state.theme = data.theme;
       if (data.instrument) state.instrument = data.instrument;
       if (data.calibration) state.calibration = data.calibration;
@@ -1197,6 +1203,7 @@
     el.serial.value = state.serial;
     el.instrument.value = state.instrument;
     el.calibration.value = state.calibration;
+    el.competency.value = state.competency;
     var a = [state.make, state.model].filter(Boolean).join(' ');
     el.assetSummary.textContent = a ? '\u2014 ' + a : '';
   }
@@ -1510,8 +1517,8 @@
     var fails = state.tests.filter(function (t) { return t.result === 'fail'; }).length;
     return '' +
       '<div class="rpt-brand">' +
-        '<div><div class="rpt-co">MARTOX TAGGING</div>' +
-        '<div class="rpt-sub">Test and tag services</div></div>' +
+        '<div><div class="rpt-co">' + esc(COMPANY.name.toUpperCase()) + '</div>' +
+        '<div class="rpt-sub">Safety &#183; Compliance &#183; Peace of mind</div></div>' +
         '<div class="rpt-contact">' + esc(COMPANY.phone) + '<br>' + esc(COMPANY.web) +
           '<br>' + esc(COMPANY.address) + '<br>ABN ' + esc(COMPANY.abn) + '</div>' +
       '</div>' +
@@ -1527,9 +1534,13 @@
   }
 
   function instrumentNote() {
+    var comp = (state.competency || '').trim();
     return '<p class="rpt-note">Testing carried out with ' + esc(state.instrument) +
       '. Instrument calibration: ' + esc(state.calibration) +
-      '. Tests performed to the requirements of ' + STANDARD_LONG + '.</p>';
+      '. Tests performed to the requirements of ' + STANDARD_LONG + '.' +
+      (comp ? ' Testing performed by a competent person as defined in ' + STANDARD +
+              ': ' + esc(comp) + '.' : '') +
+      '</p>';
   }
 
   function certificateHTML(ctx) {
@@ -2177,6 +2188,7 @@
 
   el.instrument.addEventListener('input', function () { state.instrument = this.value; save(); });
   el.calibration.addEventListener('input', function () { state.calibration = this.value; save(); });
+  el.competency.addEventListener('input', function () { state.competency = this.value; save(); });
 
   document.querySelector('.reportRow').addEventListener('click', function (e) {
     var btn = e.target.closest('[data-report]');

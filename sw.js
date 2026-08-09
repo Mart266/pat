@@ -1,7 +1,7 @@
 /* Test Tag Melbourne logger service worker — cache-first so the app opens with no reception.
    Bump CACHE_VERSION whenever you upload a changed index.html. */
 
-const CACHE_VERSION = 'ttm-logger-v20';
+const CACHE_VERSION = 'ttm-logger-v22';
 
 const PRECACHE = [
   './',
