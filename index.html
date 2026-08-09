@@ -267,6 +267,49 @@
     .rpt-bar { display: none !important; }
   }
 
+  #toast {
+    position: fixed; left: 12px; right: 12px; bottom: 16px; z-index: 50;
+    padding: 12px 14px; border-radius: 8px; color: #fff; font-size: 14px;
+    font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,0.22);
+    transform: translateY(140%); transition: transform 0.22s ease;
+    display: flex; align-items: center; gap: 10px;
+  }
+  #toast.show { transform: translateY(0); }
+  #toast.pass { background-color: #15803d; }
+  #toast.fail { background-color: #b91c1c; }
+  #toast .tag { font-family: ui-monospace, Menlo, monospace; font-weight: 700;
+    opacity: 0.9; font-size: 12px; }
+  #toast .undo {
+    margin-left: auto; background: rgba(255,255,255,0.16); color: #fff; border: none;
+    border-radius: 5px; padding: 6px 10px; font-size: 12px; font-weight: 600;
+    font-family: inherit; cursor: pointer;
+  }
+  .bigButton.locked { opacity: 0.45; pointer-events: none; }
+
+  .editForm { padding-top: 6px; }
+  .editForm .label { margin-top: 6px; }
+  .editRow { display: flex; gap: 6px; margin-bottom: 10px; }
+  .editRow button {
+    flex: 1; padding: 8px 4px; border: 1px solid #d4d4d8; background-color: #fff;
+    border-radius: 5px; font-size: 12px; font-weight: 600; cursor: pointer;
+    color: #71717a; font-family: inherit;
+  }
+  .editRow button.on { background-color: #18181b; color: #fff; border-color: #18181b; }
+  .editRow button.onPass { background-color: #15803d; color: #fff; border-color: #15803d; }
+  .editRow button.onFail { background-color: #b91c1c; color: #fff; border-color: #b91c1c; }
+  .editActions { display: flex; gap: 6px; margin-top: 10px; }
+  .editActions button {
+    flex: 1; padding: 9px; border-radius: 5px; font-size: 12px; font-weight: 600;
+    cursor: pointer; font-family: inherit; border: 1px solid #d4d4d8; background: #fff;
+    color: #3f3f46;
+  }
+  .editActions button.save { background-color: #18181b; color: #fff; border-color: #18181b; }
+  .rowButtons { display: flex; gap: 6px; }
+  .editButton {
+    padding: 4px 8px; font-size: 11px; background-color: #f4f4f5; color: #3f3f46;
+    border: none; border-radius: 4px; cursor: pointer; font-family: inherit;
+  }
+
   .reportRow { display: flex; gap: 6px; flex-wrap: wrap; padding: 12px 16px; }
   .reportBtn {
     flex: 1; min-width: 88px; padding: 10px 8px; background-color: #fff; color: #18181b;
@@ -298,11 +341,11 @@
     <label class="label" for="client">Client</label>
     <input class="field" type="text" id="client" autocomplete="off">
 
-    <label class="label" for="site">Site</label>
-    <input class="field" type="text" id="site" autocomplete="off">
-
     <label class="label" for="jobRef">Job reference</label>
     <input class="field" type="text" id="jobRef" autocomplete="off">
+
+    <label class="label" for="site">Site</label>
+    <input class="field" type="text" id="site" autocomplete="off">
 
     <label class="label" for="technician">Technician</label>
     <input class="field" type="text" id="technician" autocomplete="off">
@@ -416,6 +459,8 @@
 
 </div>
 
+<div id="toast"></div>
+
 <div id="printRoot"></div>
 
 <script>
@@ -435,13 +480,14 @@
     testType: 'Class 1',
     notes: '',
     recentItems: [],
-    technician: '',
+    technician: 'Martin Nguyen EV032',
     client: '',
     jobRef: '',
     passedItems: [],
     make: '',
     model: '',
     serial: '',
+    itemTypes: {},
     instrument: 'Aegis Patrol Pro CZ5001 portable appliance tester',
     calibration: 'Jul 2026'
   };
@@ -568,7 +614,8 @@
       state.tagNumber = data.tagNumber || '';
       state.testType = data.testType || 'Class 1';
       state.recentItems = data.recentItems || [];
-      state.technician = data.technician || '';
+      state.itemTypes = data.itemTypes || {};
+      if (typeof data.technician === 'string') state.technician = data.technician;
       state.client = data.client || '';
       state.jobRef = data.jobRef || '';
       if (data.instrument) state.instrument = data.instrument;
@@ -612,6 +659,21 @@
       return '<button class="chip' + active + '" data-item="' + escapeHtml(item) + '">' +
         escapeHtml(item) + '</button>';
     }).join('');
+  }
+
+  // Tracks whether the tester has chosen a type by hand for the current entry,
+  // so a prediction never silently overrides a deliberate selection.
+  var typeTouched = false;
+
+  function predictType() {
+    if (typeTouched) return;
+    var key = state.appliance.trim().toLowerCase();
+    if (!key) return;
+    var remembered = state.itemTypes[key];
+    if (remembered && remembered !== state.testType) {
+      state.testType = remembered;
+      renderTypeSelector();
+    }
   }
 
   function renderTypeSelector() {
@@ -835,6 +897,7 @@
     if (!total) { el.testsContainer.innerHTML = ''; return; }
 
     el.testsContainer.innerHTML = state.tests.map(function (t) {
+      if (t.id === editingId) return editRowHTML(t);
       var place = [t.site, t.location].filter(Boolean).join(' \u00b7 ');
       return '' +
         '<div class="testItem ' + t.result + '">' +
@@ -852,12 +915,126 @@
               ? '<span class="failBadge">' + t.failedItems.length + ' insp. fail</span>' : '') +
           '</div>' +
           (t.notes ? '<div class="testNotes">' + escapeHtml(t.notes) + '</div>' : '') +
-          '<button class="deleteButton" data-id="' + t.id + '">' +
-            '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>' +
-            ' Delete' +
-          '</button>' +
+          '<div class="rowButtons">' +
+            '<button class="editButton" data-edit="' + t.id + '">Edit</button>' +
+            '<button class="deleteButton" data-id="' + t.id + '">' +
+              '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>' +
+              ' Delete' +
+            '</button>' +
+          '</div>' +
         '</div>';
     }).join('');
+  }
+
+  function editRowHTML(orig) {
+    var t = editDraft || orig;
+    var failed = t.failedItems || [];
+    return '<div class="testItem ' + t.result + '">' +
+      '<div class="editForm">' +
+        '<label class="label">Appliance</label>' +
+        '<input class="field" data-e="appliance" value="' + escapeHtml(t.appliance) + '">' +
+
+        '<label class="label">Location</label>' +
+        '<input class="field" data-e="location" value="' + escapeHtml(t.location || '') + '">' +
+
+        '<label class="label">Tag number</label>' +
+        '<input class="field" data-e="tagNumber" style="font-family:ui-monospace,monospace;font-weight:600" value="' +
+          escapeHtml(t.tagNumber || '') + '">' +
+
+        '<label class="label">Test</label>' +
+        '<div class="editRow">' +
+          ['Class 1', 'Class 2', 'Lead'].map(function (ty) {
+            return '<button data-etype="' + ty + '" class="' +
+              (t.testType === ty ? 'on' : '') + '">' + ty + '</button>';
+          }).join('') +
+        '</div>' +
+
+        '<label class="label">Result</label>' +
+        '<div class="editRow">' +
+          '<button data-eresult="pass" class="' + (t.result === 'pass' ? 'onPass' : '') + '">PASS</button>' +
+          '<button data-eresult="fail" class="' + (t.result === 'fail' ? 'onFail' : '') + '">FAIL</button>' +
+        '</div>' +
+
+        '<label class="label">Inspection \u2014 untick anything that failed</label>' +
+        '<div class="checkGrid">' +
+          INSPECTION_ITEMS.map(function (item) {
+            var ok = failed.indexOf(item) === -1;
+            return '<label class="checkItem' + (ok ? '' : ' failed') + '">' +
+              '<input type="checkbox" data-eitem="' + escapeHtml(item) + '"' +
+              (ok ? ' checked' : '') + '><span>' + escapeHtml(item) + '</span></label>';
+          }).join('') +
+        '</div>' +
+
+        '<label class="label">Notes</label>' +
+        '<textarea class="field" data-e="notes" style="min-height:52px;resize:none">' +
+          escapeHtml(t.notes || '') + '</textarea>' +
+
+        '<div class="editActions">' +
+          '<button data-ecancel="1">Cancel</button>' +
+          '<button class="save" data-esave="' + orig.id + '">Save changes</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function captureDraftFields() {
+    if (!editDraft) return;
+    var wrap = el.testsContainer;
+    ['appliance', 'location', 'tagNumber', 'notes'].forEach(function (name) {
+      var f = wrap.querySelector('[data-e="' + name + '"]');
+      if (f) editDraft[name] = f.value;
+    });
+    var passed = [];
+    wrap.querySelectorAll('[data-eitem]').forEach(function (box) {
+      if (box.checked) passed.push(box.getAttribute('data-eitem'));
+    });
+    if (wrap.querySelector('[data-eitem]')) {
+      editDraft.passedItems = passed;
+      editDraft.failedItems = failedFrom(passed);
+    }
+  }
+
+  function saveEdit(id) {
+    var t = findTest(id);
+    if (!t || !editDraft) return;
+    captureDraftFields();
+
+    var newName = (editDraft.appliance || '').trim();
+    if (!newName) { alert('Appliance name cannot be empty'); return; }
+
+    t.appliance = newName;
+    t.location = (editDraft.location || '').trim();
+    t.notes = (editDraft.notes || '').trim();
+    t.testType = editDraft.testType;
+    t.result = editDraft.result;
+    t.passedItems = (editDraft.passedItems || []).slice();
+    t.failedItems = failedFrom(t.passedItems);
+
+    var newTag = (editDraft.tagNumber || '').trim();
+    if (newTag !== t.tagNumber) {
+      t.tagNumber = newTag;
+      // retest interval is derived from the tag, so recompute it against the test date
+      var months = retestMonths(newTag);
+      t.retestMonths = months;
+      var base = t.dateIso ? new Date(t.dateIso + 'T00:00:00') : new Date();
+      if (months) {
+        var next = addMonths(base, months);
+        t.nextTestIso = isoDate(next);
+        t.nextTestDisplay = next.toLocaleDateString('en-AU');
+      } else {
+        t.nextTestIso = '';
+        t.nextTestDisplay = '';
+      }
+    }
+
+    t.polarity = t.testType === 'Lead' ? (t.result === 'pass' ? 'Pass' : 'Fail') : '';
+    state.itemTypes[newName.toLowerCase()] = t.testType;
+
+    editingId = null;
+    editDraft = null;
+    renderList();
+    renderFollowUp();
+    save();
   }
 
   function syncInputs() {
@@ -879,13 +1056,73 @@
     el.assetSummary.textContent = a ? '\u2014 ' + a : '';
   }
 
+  var editingId = null;
+  var editDraft = null;
+  var submitLock = false;
+  var lastLoggedId = null;
+  var toastTimer = null;
+
+  function showToast(test) {
+    var el2 = document.getElementById('toast');
+    el2.className = test.result;
+    el2.innerHTML =
+      '<span>' + escapeHtml(test.appliance) + ' \u2014 ' + test.result.toUpperCase() + '</span>' +
+      (test.tagNumber ? '<span class="tag">' + escapeHtml(test.tagNumber) + '</span>' : '') +
+      '<button class="undo" id="undoBtn">Undo</button>';
+    void el2.offsetWidth;
+    el2.classList.add('show');
+
+    document.getElementById('undoBtn').addEventListener('click', undoLast);
+
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el2.classList.remove('show'); }, 4000);
+  }
+
+  function undoLast() {
+    if (lastLoggedId == null) return;
+    var t = findTest(lastLoggedId);
+    state.tests = state.tests.filter(function (x) { return x.id !== lastLoggedId; });
+    // put the entry back in the form so it can be corrected and re-logged
+    if (t) {
+      state.appliance = t.appliance;
+      state.location = t.location || state.location;
+      state.tagNumber = t.tagNumber;
+      state.testType = t.testType || state.testType;
+      state.notes = t.notes || '';
+      state.passedItems = t.passedItems || allPassed();
+      typeTouched = true;
+    }
+    lastLoggedId = null;
+    document.getElementById('toast').classList.remove('show');
+    syncInputs();
+    renderTypeSelector();
+    renderCheckGrid();
+    renderChips();
+    renderList();
+    renderFollowUp();
+    save();
+  }
+
+  function lockButtons() {
+    submitLock = true;
+    var btns = [document.getElementById('passBtn'), document.getElementById('failBtn')];
+    btns.forEach(function (b) { if (b) b.classList.add('locked'); });
+    setTimeout(function () {
+      submitLock = false;
+      btns.forEach(function (b) { if (b) b.classList.remove('locked'); });
+    }, 900);
+  }
+
   function handleTest(result) {
+    if (submitLock) return;
+
     var name = state.appliance.trim();
     if (!name) {
       alert('Enter an appliance name');
       el.appliance.focus();
       return;
     }
+    lockButtons();
 
     var now = new Date();
     var months = retestMonths(state.tagNumber.trim());
@@ -921,6 +1158,8 @@
       notes: state.notes.trim()
     });
 
+    state.itemTypes[name.toLowerCase()] = state.testType;
+    typeTouched = false;
     state.recentItems = [name].concat(
       state.recentItems.filter(function (i) { return i.toLowerCase() !== name.toLowerCase(); })
     ).slice(0, MAX_REMEMBERED);
@@ -929,6 +1168,9 @@
     state.notes = '';
     state.passedItems = allPassed();
     state.serial = '';
+
+    lastLoggedId = state.tests[0].id;
+    showToast(state.tests[0]);
 
     syncInputs();
     renderCheckGrid();
@@ -1343,7 +1585,7 @@
 
   // --- events ---
   el.appliance.addEventListener('input', function () {
-    state.appliance = this.value; renderChips(); save();
+    state.appliance = this.value; renderChips(); predictType(); save();
   });
   el.site.addEventListener('input', function () { state.site = this.value; save(); });
   el.technician.addEventListener('input', function () {
@@ -1493,6 +1735,7 @@
     state.appliance = chip.getAttribute('data-item');
     el.appliance.value = state.appliance;
     renderChips();
+    predictType();
     save();
   });
 
@@ -1500,11 +1743,58 @@
     var btn = e.target.closest('.typeButton');
     if (!btn) return;
     state.testType = btn.getAttribute('data-type');
+    typeTouched = true;
     renderTypeSelector();
     save();
   });
 
   el.testsContainer.addEventListener('click', function (e) {
+    var open = e.target.closest('[data-edit]');
+    if (open) {
+      editingId = Number(open.getAttribute('data-edit'));
+      var src = findTest(editingId);
+      editDraft = src ? JSON.parse(JSON.stringify(src)) : null;
+      renderList();
+      return;
+    }
+
+    if (e.target.closest('[data-ecancel]')) {
+      editingId = null;
+      editDraft = null;
+      renderList();
+      return;
+    }
+
+    var saveBtn = e.target.closest('[data-esave]');
+    if (saveBtn) { saveEdit(Number(saveBtn.getAttribute('data-esave'))); return; }
+
+    // Toggle in place rather than re-rendering, so typed edits are not discarded.
+    var ty = e.target.closest('[data-etype]');
+    if (ty && editDraft) {
+      editDraft.testType = ty.getAttribute('data-etype');
+      el.testsContainer.querySelectorAll('[data-etype]').forEach(function (b) {
+        b.classList.toggle('on', b.getAttribute('data-etype') === editDraft.testType);
+      });
+      return;
+    }
+
+    var res = e.target.closest('[data-eresult]');
+    if (res && editDraft) {
+      editDraft.result = res.getAttribute('data-eresult');
+      el.testsContainer.querySelectorAll('[data-eresult]').forEach(function (b) {
+        var v = b.getAttribute('data-eresult');
+        b.classList.toggle('onPass', v === 'pass' && editDraft.result === 'pass');
+        b.classList.toggle('onFail', v === 'fail' && editDraft.result === 'fail');
+      });
+      return;
+    }
+
+    var box = e.target.closest('[data-eitem]');
+    if (box) {
+      box.parentNode.classList.toggle('failed', !box.checked);
+      return;
+    }
+
     var btn = e.target.closest('.deleteButton');
     if (!btn) return;
     var id = Number(btn.getAttribute('data-id'));
