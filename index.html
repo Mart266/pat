@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="PAT Logger">
+<meta name="apple-mobile-web-app-title" content="TTM Logger">
 <meta name="theme-color" content="#18181b">
 <link rel="manifest" href="./manifest.json">
 <link rel="apple-touch-icon" href="./apple-touch-icon.png">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>PAT Testing Logger</title>
+<title>Test Tag Melbourne — Logger</title>
 <style>
   * { -webkit-tap-highlight-color: transparent; }
   body {
@@ -21,23 +21,40 @@
   }
   .container { max-width: 500px; margin: 0 auto; padding: 16px; min-height: 100vh; box-sizing: border-box; }
 
-  .header, .form, .testsList {
+  .form, .testsList {
     background-color: #fff;
     border: 1px solid #e4e4e7;
     border-radius: 8px;
     margin-bottom: 16px;
   }
-  .header, .form { padding: 16px; }
+  .header {
+    background-color: #0a0a0a;
+    border: 1px solid #0a0a0a;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    padding: 16px;
+  }
+  .form { padding: 16px; }
+  .brand { margin-bottom: 14px; }
+  .brandLogo { display: block; width: 100%; max-width: 210px; height: auto; }
+  .brandName {
+    font-size: 17px; font-weight: 700; color: #fff; letter-spacing: 0.03em;
+    line-height: 1.15;
+  }
+  .brandSub {
+    font-size: 10px; color: #8a8a93; margin-top: 8px;
+    text-transform: uppercase; letter-spacing: 0.09em;
+  }
   .testsList { overflow: hidden; }
 
   h1.title { margin: 0 0 12px 0; font-size: 19px; font-weight: 700; color: #18181b; }
 
   .stats { display: flex; gap: 8px; }
-  .stat { flex: 1; text-align: center; padding: 8px; background-color: #f4f4f5; border-radius: 6px; }
-  .statNumber { display: block; font-size: 22px; font-weight: 700; color: #18181b; }
-  .statNumber.pass { color: #15803d; }
-  .statNumber.fail { color: #b91c1c; }
-  .statLabel { display: block; font-size: 10px; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.6px; color: #71717a; }
+  .stat { flex: 1; text-align: center; padding: 8px; background-color: #1c1c1f; border-radius: 6px; }
+  .statNumber { display: block; font-size: 22px; font-weight: 700; color: #fff; }
+  .statNumber.pass { color: #4ade80; }
+  .statNumber.fail { color: #f87171; }
+  .statLabel { display: block; font-size: 10px; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.6px; color: #a1a1aa; }
 
   label.label {
     display: block; font-size: 11px; color: #71717a; margin-bottom: 4px;
@@ -325,7 +342,10 @@
 <div class="container">
 
   <div class="header">
-    <h1 class="title">PAT Testing Logger</h1>
+    <div class="brand">
+      <img class="brandLogo" src="./logo.png" alt="Test Tag Melbourne">
+      <div class="brandSub">Test &amp; tag logger</div>
+    </div>
     <div class="stats">
       <div class="stat"><span class="statNumber" id="countTotal">0</span><span class="statLabel">Tested</span></div>
       <div class="stat"><span class="statNumber pass" id="countPass">0</span><span class="statLabel">Pass</span></div>
@@ -493,9 +513,11 @@
   };
 
   var COMPANY = {
-    name: 'Martox Tagging',
+    name: 'Test Tag Melbourne',
     address: '13 Slough St, Deer Park VIC 3023',
-    phone: '0408 130 066'
+    phone: '0408 130 066',
+    abn: '36 246 545 097',
+    web: 'testtagmelb.com.au'
   };
 
   var ACTIONS = [
@@ -1367,7 +1389,8 @@
       '<div class="rpt-brand">' +
         '<div><div class="rpt-co">MARTOX TAGGING</div>' +
         '<div class="rpt-sub">Test and tag services</div></div>' +
-        '<div class="rpt-contact">' + esc(COMPANY.phone) + '<br>' + esc(COMPANY.address) + '</div>' +
+        '<div class="rpt-contact">' + esc(COMPANY.phone) + '<br>' + esc(COMPANY.web) +
+          '<br>' + esc(COMPANY.address) + '<br>ABN ' + esc(COMPANY.abn) + '</div>' +
       '</div>' +
       '<h1 class="rpt-h1">' + esc(title) + '</h1>' +
       '<div class="rpt-meta">' +
@@ -1414,9 +1437,10 @@
         ['Emergency and exit lighting &mdash; AS/NZS 2293.2', 'N/A']
       ]) +
 
-      '<p>Martox Tagging has inspected and tested the equipment found at the above site and ' +
-      'recorded the results in the accompanying reports. The information above is accurate at ' +
-      'the time of issue. Please advise Martox Tagging immediately of any error or omission.</p>' +
+      '<p>' + esc(COMPANY.name) + ' has inspected and tested the equipment found at the above ' +
+      'site and recorded the results in the accompanying reports. The information above is ' +
+      'accurate at the time of issue. Please advise ' + esc(COMPANY.name) + ' immediately of ' +
+      'any error or omission.</p>' +
 
       (fails
         ? '<p><b>' + fails + ' item' + (fails === 1 ? '' : 's') + ' failed and ' +

@@ -1,7 +1,7 @@
 {
-  "name": "PAT Testing Logger",
-  "short_name": "PAT Logger",
-  "description": "On-site portable appliance test logging with CSV export.",
+  "name": "Test Tag Melbourne — Logger",
+  "short_name": "TTM Logger",
+  "description": "On-site test and tag logging with reports and CSV export.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -9,7 +9,17 @@
   "background_color": "#f4f4f5",
   "theme_color": "#18181b",
   "icons": [
-    { "src": "./icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+    {
+      "src": "./icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
   ]
 }

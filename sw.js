@@ -1,7 +1,7 @@
-/* PAT Logger service worker — cache-first so the app opens with no reception.
+/* Test Tag Melbourne logger service worker — cache-first so the app opens with no reception.
    Bump CACHE_VERSION whenever you upload a changed index.html. */
 
-const CACHE_VERSION = 'pat-logger-v13';
+const CACHE_VERSION = 'ttm-logger-v18';
 
 const PRECACHE = [
   './',
@@ -9,7 +9,8 @@ const PRECACHE = [
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
-  './apple-touch-icon.png'
+  './apple-touch-icon.png',
+  './logo.png'
 ];
 
 self.addEventListener('install', (event) => {
