@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PAT Logger">
+<meta name="theme-color" content="#18181b">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>PAT Testing Logger</title>
+<style>
+  * { -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background-color: #f4f4f5;
+    color: #18181b;
+  }
+  .container { max-width: 500px; margin: 0 auto; padding: 16px; min-height: 100vh; box-sizing: border-box; }
+
+  .header, .form, .testsList {
+    background-color: #fff;
+    border: 1px solid #e4e4e7;
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+  .header, .form { padding: 16px; }
+  .testsList { overflow: hidden; }
+
+  h1.title { margin: 0 0 12px 0; font-size: 19px; font-weight: 700; color: #18181b; }
+
+  .stats { display: flex; gap: 8px; }
+  .stat { flex: 1; text-align: center; padding: 8px; background-color: #f4f4f5; border-radius: 6px; }
+  .statNumber { display: block; font-size: 22px; font-weight: 700; color: #18181b; }
+  .statNumber.pass { color: #15803d; }
+  .statNumber.fail { color: #b91c1c; }
+  .statLabel { display: block; font-size: 10px; margin-top: 2px; text-transform: uppercase; letter-spacing: 0.6px; color: #71717a; }
+
+  label.label {
+    display: block; font-size: 11px; color: #71717a; margin-bottom: 4px;
+    text-transform: uppercase; letter-spacing: 0.4px; font-weight: 600;
+  }
+  input.field, textarea.field {
+    width: 100%; padding: 10px 12px; margin-bottom: 12px;
+    border: 1px solid #d4d4d8; border-radius: 6px;
+    font-size: 14px; font-family: inherit; box-sizing: border-box; color: #18181b;
+    background-color: #fff; -webkit-appearance: none;
+  }
+  input.field:focus, textarea.field:focus { outline: 2px solid #18181b; outline-offset: -1px; }
+  input.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 600; }
+  textarea.field { min-height: 60px; resize: none; }
+
+  .chipRow { display: flex; flex-wrap: wrap; gap: 6px; margin-top: -4px; margin-bottom: 14px; }
+  .chipRow:empty { display: none; }
+  .chip {
+    padding: 6px 10px; border: 1px solid #d4d4d8; background-color: #fafafa;
+    border-radius: 14px; font-size: 12px; font-weight: 500; cursor: pointer;
+    color: #3f3f46; font-family: inherit;
+  }
+  .chip.active { background-color: #18181b; border-color: #18181b; color: #fff; }
+
+  .typeSelector { display: flex; gap: 6px; margin-bottom: 12px; }
+  .typeButton {
+    flex: 1; padding: 10px 6px; border: 1px solid #d4d4d8; background-color: #fff;
+    border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;
+    color: #71717a; font-family: inherit;
+  }
+  .typeButton.active { background-color: #18181b; color: #fff; border-color: #18181b; }
+
+  .buttonGroup { display: flex; gap: 10px; margin-bottom: 10px; }
+  .bigButton {
+    flex: 1; padding: 13px 16px; border: none; border-radius: 6px;
+    font-size: 14px; font-weight: 700; cursor: pointer; color: #fff;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    font-family: inherit;
+  }
+  .bigButton.pass { background-color: #15803d; }
+  .bigButton.fail { background-color: #b91c1c; }
+  .bigButton:active { filter: brightness(0.92); }
+
+  .toggleButton {
+    width: 100%; padding: 10px; border: 1px solid #d4d4d8; background-color: #fff;
+    border-radius: 6px; font-size: 13px; cursor: pointer; color: #71717a;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    font-family: inherit; box-sizing: border-box;
+  }
+  #showFormBtn { margin-bottom: 16px; }
+
+  .listHeader {
+    padding: 12px 16px; border-bottom: 1px solid #e4e4e7;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .listTitle { margin: 0; font-size: 14px; font-weight: 600; color: #18181b; }
+  .exportButton {
+    padding: 6px 10px; background-color: #18181b; color: #fff; border: none;
+    border-radius: 4px; font-size: 12px; cursor: pointer;
+    display: flex; align-items: center; gap: 5px; font-family: inherit;
+  }
+  .clearButton {
+    padding: 6px 10px; background-color: #fff; color: #71717a;
+    border: 1px solid #d4d4d8; border-radius: 4px; font-size: 12px;
+    cursor: pointer; font-family: inherit;
+  }
+  .listActions { display: flex; gap: 6px; align-items: center; }
+  .testsContainer { max-height: 420px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+  .testItem { padding: 12px 16px; border-left: 4px solid; border-bottom: 1px solid #f4f4f5; }
+  .testItem.pass { border-left-color: #15803d; }
+  .testItem.fail { border-left-color: #b91c1c; }
+  .testHeader { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; gap: 8px; }
+  .testAppliance { font-size: 14px; font-weight: 600; color: #18181b; }
+  .testResult { font-size: 12px; font-weight: 700; }
+  .testResult.pass { color: #15803d; }
+  .testResult.fail { color: #b91c1c; }
+  .testMeta {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    font-size: 12px; color: #71717a; margin-bottom: 6px;
+  }
+  .typeBadge {
+    font-size: 10px; font-weight: 700; color: #3f3f46; background-color: #e4e4e7;
+    padding: 2px 6px; border-radius: 3px; text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  .tagText { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 600; color: #3f3f46; }
+  .testNotes {
+    font-size: 12px; color: #71717a; font-style: italic; margin-bottom: 8px;
+    padding-left: 8px; border-left: 2px solid #e4e4e7;
+  }
+  .deleteButton {
+    padding: 4px 8px; font-size: 11px; background-color: #fef2f2; color: #991b1b;
+    border: none; border-radius: 4px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 4px; font-family: inherit;
+  }
+  svg { flex-shrink: 0; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1 class="title">PAT Testing Logger</h1>
+    <div class="stats">
+      <div class="stat"><span class="statNumber" id="countTotal">0</span><span class="statLabel">Tested</span></div>
+      <div class="stat"><span class="statNumber pass" id="countPass">0</span><span class="statLabel">Pass</span></div>
+      <div class="stat"><span class="statNumber fail" id="countFail">0</span><span class="statLabel">Fail</span></div>
+    </div>
+  </div>
+
+  <div class="form" id="form">
+    <label class="label" for="appliance">Appliance</label>
+    <input class="field" type="text" id="appliance" autocomplete="off">
+
+    <div class="chipRow" id="chipRow"></div>
+
+    <label class="label" for="site">Site</label>
+    <input class="field" type="text" id="site" autocomplete="off">
+
+    <label class="label" for="location">Location</label>
+    <input class="field" type="text" id="location" autocomplete="off">
+
+    <label class="label" for="tagNumber">Tag number</label>
+    <input class="field mono" type="text" id="tagNumber" autocomplete="off">
+
+    <label class="label">Test</label>
+    <div class="typeSelector" id="typeSelector">
+      <button class="typeButton active" data-type="Class 1">Class 1</button>
+      <button class="typeButton" data-type="Class 2">Class 2</button>
+      <button class="typeButton" data-type="Lead">Lead</button>
+    </div>
+
+    <label class="label" for="notes">Notes</label>
+    <textarea class="field" id="notes"></textarea>
+
+    <div class="buttonGroup">
+      <button class="bigButton pass" id="passBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
+        PASS
+      </button>
+      <button class="bigButton fail" id="failBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>
+        FAIL
+      </button>
+    </div>
+
+    <button class="toggleButton" id="hideFormBtn">Hide form</button>
+  </div>
+
+  <button class="toggleButton" id="showFormBtn" style="display:none">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+    Show form
+  </button>
+
+  <div class="testsList" id="testsList" style="display:none">
+    <div class="listHeader">
+      <h2 class="listTitle">Logged tests</h2>
+      <div class="listActions">
+      <button class="exportButton" id="exportBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+        Export CSV
+      </button>
+      <button class="clearButton" id="clearBtn">Clear</button>
+      </div>
+    </div>
+    <div class="testsContainer" id="testsContainer"></div>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var STORAGE_KEY = 'pat-tests';
+  var MAX_REMEMBERED = 200;
+  var MAX_CHIPS = 12;
+
+  var state = {
+    tests: [],
+    appliance: '',
+    site: '',
+    location: '',
+    tagNumber: '',
+    testType: 'Class 1',
+    notes: '',
+    recentItems: []
+  };
+
+  var el = {
+    appliance: document.getElementById('appliance'),
+    site: document.getElementById('site'),
+    location: document.getElementById('location'),
+    tagNumber: document.getElementById('tagNumber'),
+    notes: document.getElementById('notes'),
+    chipRow: document.getElementById('chipRow'),
+    typeSelector: document.getElementById('typeSelector'),
+    testsList: document.getElementById('testsList'),
+    testsContainer: document.getElementById('testsContainer'),
+    countTotal: document.getElementById('countTotal'),
+    countPass: document.getElementById('countPass'),
+    countFail: document.getElementById('countFail'),
+    form: document.getElementById('form'),
+    showFormBtn: document.getElementById('showFormBtn')
+  };
+
+  // Increments the last run of digits in a tag, preserving any prefix and zero-padding.
+  function incrementTag(tag) {
+    var match = String(tag).match(/^(.*?)(\d+)(\D*)$/);
+    if (!match) return tag;
+    var digits = match[2];
+    var next = String(Number(digits) + 1);
+    while (next.length < digits.length) next = '0' + next;
+    return match[1] + next + match[3];
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function save() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+      console.error('Save failed', e);
+    }
+  }
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      var data = JSON.parse(raw);
+      state.tests = data.tests || [];
+      state.appliance = data.appliance || '';
+      state.site = data.site || '';
+      state.location = data.location || '';
+      state.tagNumber = data.tagNumber || '';
+      state.testType = data.testType || 'Class 1';
+      state.recentItems = data.recentItems || [];
+    } catch (e) {
+      console.error('Load failed', e);
+    }
+  }
+
+  function renderChips() {
+    var query = state.appliance.trim().toLowerCase();
+    var items = state.recentItems;
+    if (query) {
+      items = items.filter(function (i) { return i.toLowerCase().indexOf(query) !== -1; });
+    }
+    items = items.slice(0, MAX_CHIPS);
+
+    el.chipRow.innerHTML = items.map(function (item) {
+      var active = query === item.toLowerCase() ? ' active' : '';
+      return '<button class="chip' + active + '" data-item="' + escapeHtml(item) + '">' +
+        escapeHtml(item) + '</button>';
+    }).join('');
+  }
+
+  function renderTypeSelector() {
+    var buttons = el.typeSelector.querySelectorAll('.typeButton');
+    for (var i = 0; i < buttons.length; i++) {
+      if (buttons[i].getAttribute('data-type') === state.testType) {
+        buttons[i].classList.add('active');
+      } else {
+        buttons[i].classList.remove('active');
+      }
+    }
+  }
+
+  function renderList() {
+    var total = state.tests.length;
+    var pass = 0, fail = 0;
+    state.tests.forEach(function (t) { t.result === 'pass' ? pass++ : fail++; });
+
+    el.countTotal.textContent = total;
+    el.countPass.textContent = pass;
+    el.countFail.textContent = fail;
+
+    el.testsList.style.display = total ? '' : 'none';
+    if (!total) { el.testsContainer.innerHTML = ''; return; }
+
+    el.testsContainer.innerHTML = state.tests.map(function (t) {
+      var place = [t.site, t.location].filter(Boolean).join(' \u00b7 ');
+      return '' +
+        '<div class="testItem ' + t.result + '">' +
+          '<div class="testHeader">' +
+            '<span class="testAppliance">' + escapeHtml(t.appliance) + '</span>' +
+            '<span class="testResult ' + t.result + '">' + t.result.toUpperCase() + '</span>' +
+          '</div>' +
+          '<div class="testMeta">' +
+            '<span class="typeBadge">' + escapeHtml(t.testType || '\u2014') + '</span>' +
+            (t.tagNumber ? '<span class="tagText">' + escapeHtml(t.tagNumber) + '</span>' : '') +
+            (place ? '<span>' + escapeHtml(place) + '</span>' : '') +
+            '<span>' + escapeHtml(t.date + ' ' + t.time) + '</span>' +
+          '</div>' +
+          (t.notes ? '<div class="testNotes">' + escapeHtml(t.notes) + '</div>' : '') +
+          '<button class="deleteButton" data-id="' + t.id + '">' +
+            '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>' +
+            ' Delete' +
+          '</button>' +
+        '</div>';
+    }).join('');
+  }
+
+  function syncInputs() {
+    el.appliance.value = state.appliance;
+    el.site.value = state.site;
+    el.location.value = state.location;
+    el.tagNumber.value = state.tagNumber;
+    el.notes.value = state.notes;
+  }
+
+  function handleTest(result) {
+    var name = state.appliance.trim();
+    if (!name) {
+      alert('Enter an appliance name');
+      el.appliance.focus();
+      return;
+    }
+
+    var now = new Date();
+    state.tests.unshift({
+      id: Date.now(),
+      appliance: name,
+      site: state.site.trim(),
+      location: state.location.trim(),
+      tagNumber: state.tagNumber.trim(),
+      testType: state.testType,
+      result: result,
+      date: now.toLocaleDateString('en-AU'),
+      time: now.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' }),
+      notes: state.notes.trim()
+    });
+
+    state.recentItems = [name].concat(
+      state.recentItems.filter(function (i) { return i.toLowerCase() !== name.toLowerCase(); })
+    ).slice(0, MAX_REMEMBERED);
+
+    if (state.tagNumber.trim()) state.tagNumber = incrementTag(state.tagNumber.trim());
+    state.notes = '';
+
+    syncInputs();
+    renderChips();
+    renderList();
+    save();
+  }
+
+  function exportCSV() {
+    if (!state.tests.length) { alert('Nothing to export yet'); return; }
+
+    var headers = ['Appliance', 'Site', 'Location', 'Tag Number', 'Test Type', 'Result', 'Date', 'Time', 'Notes'];
+    var rows = state.tests.map(function (t) {
+      return [t.appliance, t.site || '', t.location || '', t.tagNumber, t.testType || '',
+              t.result.toUpperCase(), t.date, t.time, t.notes];
+    });
+
+    var csv = [headers].concat(rows).map(function (row) {
+      return row.map(function (cell) {
+        return '"' + String(cell == null ? '' : cell).replace(/"/g, '""') + '"';
+      }).join(',');
+    }).join('\r\n');
+
+    var stamp = new Date().toISOString().split('T')[0];
+    var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'PAT-Tests-' + stamp + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  function clearTests() {
+    var n = state.tests.length;
+    if (!n) { alert('Nothing to clear'); return; }
+
+    var message =
+      'Clear all ' + n + ' logged test' + (n === 1 ? '' : 's') + '?\n\n' +
+      'Kept: remembered item names, tag number, site, location and test type.\n' +
+      'Removed: the logged test records only.\n\n' +
+      'This cannot be undone. Export your CSV first if you have not already.';
+
+    if (!confirm(message)) return;
+
+    state.tests = [];
+    renderList();
+    save();
+  }
+
+  // --- events ---
+  el.appliance.addEventListener('input', function () {
+    state.appliance = this.value; renderChips(); save();
+  });
+  el.site.addEventListener('input', function () { state.site = this.value; save(); });
+  el.location.addEventListener('input', function () { state.location = this.value; save(); });
+  el.tagNumber.addEventListener('input', function () { state.tagNumber = this.value; save(); });
+  el.notes.addEventListener('input', function () { state.notes = this.value; save(); });
+
+  el.chipRow.addEventListener('click', function (e) {
+    var chip = e.target.closest('.chip');
+    if (!chip) return;
+    state.appliance = chip.getAttribute('data-item');
+    el.appliance.value = state.appliance;
+    renderChips();
+    save();
+  });
+
+  el.typeSelector.addEventListener('click', function (e) {
+    var btn = e.target.closest('.typeButton');
+    if (!btn) return;
+    state.testType = btn.getAttribute('data-type');
+    renderTypeSelector();
+    save();
+  });
+
+  el.testsContainer.addEventListener('click', function (e) {
+    var btn = e.target.closest('.deleteButton');
+    if (!btn) return;
+    var id = Number(btn.getAttribute('data-id'));
+    state.tests = state.tests.filter(function (t) { return t.id !== id; });
+    renderList();
+    save();
+  });
+
+  document.getElementById('passBtn').addEventListener('click', function () { handleTest('pass'); });
+  document.getElementById('failBtn').addEventListener('click', function () { handleTest('fail'); });
+  document.getElementById('exportBtn').addEventListener('click', exportCSV);
+  document.getElementById('clearBtn').addEventListener('click', clearTests);
+
+  document.getElementById('hideFormBtn').addEventListener('click', function () {
+    el.form.style.display = 'none';
+    el.showFormBtn.style.display = '';
+  });
+  el.showFormBtn.addEventListener('click', function () {
+    el.form.style.display = '';
+    el.showFormBtn.style.display = 'none';
+  });
+
+  // --- init ---
+  load();
+  syncInputs();
+  renderChips();
+  renderTypeSelector();
+  renderList();
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./sw.js', { scope: './' })
+      .catch(function (e) { console.log('Offline cache unavailable:', e); });
+  });
+}
+</script>
+</body>
+</html>
