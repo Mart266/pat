@@ -99,6 +99,60 @@
     border-radius: 4px; font-size: 12px; cursor: pointer;
     display: flex; align-items: center; gap: 5px; font-family: inherit;
   }
+  .panelToggle {
+    width: 100%; padding: 9px 12px; background-color: #fafafa; color: #3f3f46;
+    border: 1px solid #d4d4d8; border-radius: 6px; font-size: 12px; font-weight: 600;
+    cursor: pointer; font-family: inherit; text-transform: uppercase; letter-spacing: 0.4px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-sizing: border-box; margin-bottom: 12px;
+  }
+  .panelToggle .caret { font-size: 10px; color: #a1a1aa; }
+  .panelToggle .summary { font-weight: 500; text-transform: none; letter-spacing: 0; color: #71717a; }
+  .panelBody { display: none; }
+  .panelBody.open { display: block; }
+  .checkGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; margin-bottom: 12px; }
+    .checkItem { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #3f3f46; }
+  .checkItem.failed { color: #991b1b; font-weight: 600; }
+  .checkItem input { width: 16px; height: 16px; accent-color: #15803d; margin: 0; flex-shrink: 0; }
+  .failBadge {
+    font-size: 10px; font-weight: 700; color: #991b1b; background-color: #fef2f2;
+    padding: 2px 6px; border-radius: 3px;
+  }
+  .followList { }
+  .followItem { padding: 12px 16px; border-left: 4px solid #b91c1c; border-bottom: 1px solid #f4f4f5; }
+  .followHead { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .followName { font-size: 14px; font-weight: 600; color: #18181b; }
+  .followBtn {
+    padding: 5px 9px; background-color: #18181b; color: #fff; border: none;
+    border-radius: 4px; font-size: 11px; cursor: pointer; font-family: inherit;
+    white-space: nowrap;
+  }
+  .followBody { display: none; padding-top: 8px; }
+  .followBody.open { display: block; }
+  .followDone { font-size: 10px; font-weight: 700; color: #15803d; background-color: #f0fdf4;
+    padding: 2px 6px; border-radius: 3px; }
+  .followTodo { font-size: 10px; font-weight: 700; color: #991b1b; background-color: #fef2f2;
+    padding: 2px 6px; border-radius: 3px; }
+  select.field {
+    width: 100%; padding: 10px 12px; margin-bottom: 12px; border: 1px solid #d4d4d8;
+    border-radius: 6px; font-size: 14px; font-family: inherit; box-sizing: border-box;
+    background-color: #fff; color: #18181b; -webkit-appearance: none;
+  }
+  .photoRow { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+  .photoThumb { position: relative; width: 72px; height: 72px; border-radius: 4px; overflow: hidden;
+    border: 1px solid #d4d4d8; }
+  .photoThumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photoDel {
+    position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; padding: 0;
+    background-color: rgba(24,24,27,0.8); color: #fff; border: none; border-radius: 9px;
+    font-size: 12px; line-height: 1; cursor: pointer; font-family: inherit;
+  }
+  .addPhoto {
+    width: 72px; height: 72px; border: 1px dashed #a1a1aa; border-radius: 4px;
+    background-color: #fafafa; color: #71717a; font-size: 22px; cursor: pointer;
+    font-family: inherit; display: flex; align-items: center; justify-content: center;
+  }
+  .storageNote { font-size: 11px; color: #a1a1aa; padding: 8px 16px; border-top: 1px solid #f4f4f5; }
   .clearButton {
     padding: 6px 10px; background-color: #fff; color: #71717a;
     border: 1px solid #d4d4d8; border-radius: 4px; font-size: 12px;
@@ -134,6 +188,93 @@
     display: inline-flex; align-items: center; gap: 4px; font-family: inherit;
   }
   svg { flex-shrink: 0; }
+  /* --- report output --- */
+  #printRoot { display: none; }
+  .rpt-bar {
+    position: sticky; top: 0; z-index: 10; display: flex; gap: 8px; align-items: center;
+    justify-content: space-between; padding: 10px 12px; background-color: #18181b;
+    color: #fff; font-size: 13px;
+  }
+  .rpt-bar button {
+    padding: 7px 12px; border: none; border-radius: 5px; font-size: 12px; font-weight: 600;
+    cursor: pointer; font-family: inherit; background-color: #fff; color: #18181b;
+  }
+  .rpt-bar .ghost { background-color: transparent; color: #fff; border: 1px solid #52525b; }
+  body.printing .container { display: none; }
+  body.printing #printRoot { display: block; }
+
+  .rpt-page { padding: 10mm 0; font-size: 9pt; color: #18181b; line-height: 1.45; }
+  .rpt-page + .rpt-page { page-break-before: always; }
+  .rpt-brand { display: flex; justify-content: space-between; align-items: flex-start;
+    border-bottom: 0.6pt solid #d4d4d8; padding-bottom: 4mm; margin-bottom: 8mm; }
+  .rpt-co { font-size: 13pt; font-weight: 700; letter-spacing: 0.02em; }
+  .rpt-sub { font-size: 7.5pt; color: #71717a; margin-top: 1mm; }
+  .rpt-contact { font-size: 7.5pt; color: #71717a; text-align: right; line-height: 1.5; }
+  .rpt-h1 { font-size: 15pt; margin: 0 0 3mm; page-break-after: avoid; }
+  .rpt-h2 { font-size: 9pt; margin: 6mm 0 2mm; page-break-after: avoid;
+    break-after: avoid; }
+  .rpt-h2 em { font-style: normal; font-weight: 400; color: #71717a; font-size: 7.5pt;
+    margin-left: 3mm; }
+  .rpt-meta { display: flex; gap: 6mm; margin-bottom: 6mm; }
+  .rpt-meta > div { flex: 1; font-size: 8.5pt; }
+  .rpt-meta span { display: block; font-size: 6.5pt; color: #71717a; letter-spacing: 0.05em; }
+  .rpt-page p { margin: 0 0 3mm; }
+  .rpt-note { font-size: 7.5pt; color: #71717a; margin-top: 6mm; }
+
+  .rpt-kv { width: 100%; border-collapse: collapse; }
+  .rpt-kv td { border-bottom: 0.4pt solid #d4d4d8; padding: 2.2mm 0; font-size: 8.5pt;
+    vertical-align: middle; }
+  .rpt-num { text-align: right; width: 20mm; white-space: nowrap; }
+
+  .rpt-tbl { width: 100%; border-collapse: collapse; }
+  .rpt-tbl th { font-size: 6.5pt; color: #71717a; text-align: left; font-weight: 400;
+    letter-spacing: 0.05em; border-bottom: 0.5pt solid #18181b; padding: 1.5mm 2mm 1.5mm 0; }
+  .rpt-tbl td { font-size: 7.5pt; padding: 1.5mm 2mm 1.5mm 0;
+    border-bottom: 0.3pt solid #f0f0f1; vertical-align: middle; }
+  .rpt-tbl tr { page-break-inside: avoid; }
+  .rpt-r { text-align: right; padding-right: 0 !important; }
+  .rpt-mono { font-family: ui-monospace, Menlo, monospace; font-size: 7pt; }
+  .rpt-pass { color: #15803d; font-weight: 700; }
+  .rpt-fail { color: #b91c1c; font-weight: 700; }
+
+  .rpt-item { page-break-inside: avoid; margin-bottom: 7mm; }
+  .rpt-itemhead { display: flex; align-items: baseline; gap: 3mm; font-size: 9pt;
+    border-bottom: 0.5pt solid #18181b; padding-bottom: 1.5mm; }
+  .rpt-itemhead .rpt-r { margin-left: auto; }
+  .rpt-cols { display: flex; gap: 8mm; margin-top: 2mm; }
+  .rpt-insp { width: 50%; }
+  .rpt-detail { width: 50%; }
+  .rpt-dt { margin-bottom: 3mm; font-size: 7.5pt; }
+  .rpt-dt span { display: block; font-size: 6.5pt; color: #71717a; letter-spacing: 0.05em; }
+  .rpt-photos { display: flex; gap: 3mm; flex-wrap: wrap; margin-top: 1mm; }
+  .rpt-photo { width: 42mm; border: 0.4pt solid #d4d4d8; }
+
+  .rpt-sig { width: 100%; border-collapse: collapse; margin-top: 10mm; }
+  .rpt-sig td { border-bottom: 0.5pt solid #18181b; height: 14mm; vertical-align: top;
+    font-size: 9pt; padding-right: 6mm; width: 33%; }
+  .rpt-sig span { display: block; font-size: 6.5pt; color: #71717a; letter-spacing: 0.05em;
+    margin-bottom: 1mm; }
+
+  @media screen {
+    body.printing { background-color: #fff; }
+    #printRoot .rpt-page { padding: 6mm 12px 24px; }
+  }
+
+  @page { size: A4; margin: 14mm; }
+  @media print {
+    body { background: #fff; }
+    .rpt-page { padding: 0; }
+    .rpt-bar { display: none !important; }
+  }
+
+  .reportRow { display: flex; gap: 6px; flex-wrap: wrap; padding: 12px 16px; }
+  .reportBtn {
+    flex: 1; min-width: 88px; padding: 10px 8px; background-color: #fff; color: #18181b;
+    border: 1px solid #d4d4d8; border-radius: 6px; font-size: 12px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+  .reportBtn.primary { background-color: #18181b; color: #fff; border-color: #18181b; }
+
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
@@ -149,14 +290,37 @@
     </div>
   </div>
 
+  <button class="panelToggle" id="jobToggle">
+    <span>Job setup <span class="summary" id="jobSummary"></span></span>
+    <span class="caret" id="jobCaret">&#9660;</span>
+  </button>
+  <div class="form panelBody" id="jobPanel">
+    <label class="label" for="client">Client</label>
+    <input class="field" type="text" id="client" autocomplete="off">
+
+    <label class="label" for="site">Site</label>
+    <input class="field" type="text" id="site" autocomplete="off">
+
+    <label class="label" for="jobRef">Job reference</label>
+    <input class="field" type="text" id="jobRef" autocomplete="off">
+
+    <label class="label" for="technician">Technician</label>
+    <input class="field" type="text" id="technician" autocomplete="off">
+
+    <label class="label" for="instrument">Test instrument</label>
+    <input class="field" type="text" id="instrument" autocomplete="off">
+
+    <label class="label" for="calibration">Instrument calibration</label>
+    <input class="field" type="text" id="calibration" autocomplete="off">
+
+    <button class="toggleButton" id="newJobBtn">Start new job</button>
+  </div>
+
   <div class="form" id="form">
     <label class="label" for="appliance">Appliance</label>
     <input class="field" type="text" id="appliance" autocomplete="off">
 
     <div class="chipRow" id="chipRow"></div>
-
-    <label class="label" for="site">Site</label>
-    <input class="field" type="text" id="site" autocomplete="off">
 
     <label class="label" for="location">Location</label>
     <input class="field" type="text" id="location" autocomplete="off">
@@ -169,6 +333,27 @@
       <button class="typeButton active" data-type="Class 1">Class 1</button>
       <button class="typeButton" data-type="Class 2">Class 2</button>
       <button class="typeButton" data-type="Lead">Lead</button>
+    </div>
+
+    <button class="panelToggle" id="assetToggle" type="button">
+      <span>Asset detail <span class="summary" id="assetSummary"></span></span>
+      <span class="caret" id="assetCaret">&#9660;</span>
+    </button>
+    <div class="panelBody" id="assetPanel">
+      <label class="label" for="make">Make</label>
+      <input class="field" type="text" id="make" autocomplete="off">
+      <label class="label" for="model">Model</label>
+      <input class="field" type="text" id="model" autocomplete="off">
+      <label class="label" for="serial">Serial number</label>
+      <input class="field" type="text" id="serial" autocomplete="off">
+    </div>
+
+    <button class="panelToggle" id="inspToggle" type="button">
+      <span>Inspection <span class="summary" id="inspSummary"></span></span>
+      <span class="caret" id="inspCaret">&#9660;</span>
+    </button>
+    <div class="panelBody" id="inspPanel">
+      <div class="checkGrid" id="checkGrid"></div>
     </div>
 
     <label class="label" for="notes">Notes</label>
@@ -193,14 +378,36 @@
     Show form
   </button>
 
+  <div class="testsList" id="reportsCard" style="display:none">
+    <div class="listHeader">
+      <h2 class="listTitle">Reports</h2>
+    </div>
+    <div class="reportRow">
+      <button class="reportBtn primary" data-report="all">All reports</button>
+      <button class="reportBtn" data-report="certificate">Certificate</button>
+      <button class="reportBtn" data-report="concise">Concise</button>
+      <button class="reportBtn" data-report="fail">Fail report</button>
+    </div>
+    <div class="storageNote">Opens the print dialog. On iPhone choose Print, then pinch the preview and share it as a PDF.</div>
+  </div>
+
+  <div class="testsList" id="followList" style="display:none">
+    <div class="listHeader">
+      <h2 class="listTitle">Failed items — follow up</h2>
+    </div>
+    <div id="followContainer"></div>
+    <div class="storageNote" id="storageNote"></div>
+  </div>
+
   <div class="testsList" id="testsList" style="display:none">
     <div class="listHeader">
       <h2 class="listTitle">Logged tests</h2>
       <div class="listActions">
-      <button class="exportButton" id="exportBtn">
+      <button class="exportButton" id="zipBtn">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-        Export CSV
+        Export ZIP
       </button>
+      <button class="clearButton" id="exportBtn">CSV</button>
       <button class="clearButton" id="clearBtn">Clear</button>
       </div>
     </div>
@@ -208,6 +415,8 @@
   </div>
 
 </div>
+
+<div id="printRoot"></div>
 
 <script>
 (function () {
@@ -225,8 +434,43 @@
     tagNumber: '',
     testType: 'Class 1',
     notes: '',
-    recentItems: []
+    recentItems: [],
+    technician: '',
+    client: '',
+    jobRef: '',
+    passedItems: [],
+    make: '',
+    model: '',
+    serial: '',
+    instrument: 'Aegis Patrol Pro CZ5001 portable appliance tester',
+    calibration: 'Jul 2026'
   };
+
+  var COMPANY = {
+    name: 'Martox Tagging',
+    address: '13 Slough St, Deer Park VIC 3023',
+    phone: '0408 130 066'
+  };
+
+  var ACTIONS = [
+    '',
+    'Tagged out of service',
+    'Removed from site',
+    'Sent for repair',
+    'Repaired and retested',
+    'Destroyed / disposed'
+  ];
+
+  var INSPECTION_ITEMS = [
+    'Cover / Guards', 'Flexible cord', 'Plugs', 'Controls', 'Safety Devices',
+    'Accessories', 'Max Load Label', 'Ventilation', 'Outlet Sockets', 'Connectors'
+  ];
+
+  // Every item starts ticked (passed). Untick only what actually failed.
+  function allPassed() { return INSPECTION_ITEMS.slice(); }
+  function failedFrom(passed) {
+    return INSPECTION_ITEMS.filter(function (i) { return passed.indexOf(i) === -1; });
+  }
 
   var el = {
     appliance: document.getElementById('appliance'),
@@ -242,7 +486,29 @@
     countPass: document.getElementById('countPass'),
     countFail: document.getElementById('countFail'),
     form: document.getElementById('form'),
-    showFormBtn: document.getElementById('showFormBtn')
+    showFormBtn: document.getElementById('showFormBtn'),
+    technician: document.getElementById('technician'),
+    client: document.getElementById('client'),
+    jobRef: document.getElementById('jobRef'),
+    jobPanel: document.getElementById('jobPanel'),
+    jobSummary: document.getElementById('jobSummary'),
+    jobCaret: document.getElementById('jobCaret'),
+    inspPanel: document.getElementById('inspPanel'),
+    inspSummary: document.getElementById('inspSummary'),
+    inspCaret: document.getElementById('inspCaret'),
+    checkGrid: document.getElementById('checkGrid'),
+    make: document.getElementById('make'),
+    model: document.getElementById('model'),
+    serial: document.getElementById('serial'),
+    assetPanel: document.getElementById('assetPanel'),
+    assetSummary: document.getElementById('assetSummary'),
+    assetCaret: document.getElementById('assetCaret'),
+    followList: document.getElementById('followList'),
+    followContainer: document.getElementById('followContainer'),
+    storageNote: document.getElementById('storageNote'),
+    instrument: document.getElementById('instrument'),
+    calibration: document.getElementById('calibration'),
+    reportsCard: document.getElementById('reportsCard')
   };
 
   // Increments the last run of digits in a tag, preserving any prefix and zero-padding.
@@ -253,6 +519,27 @@
     var next = String(Number(digits) + 1);
     while (next.length < digits.length) next = '0' + next;
     return match[1] + next + match[3];
+  }
+
+  // Retest interval is encoded in the tag prefix: T12V = 12 months, Victoria.
+  // Any trailing state letter works (T12V, T3Q, T12N), so interstate tags still derive.
+  function retestMonths(tag) {
+    var m = String(tag).match(/^[A-Za-z]*?(\d+)\s*[A-Za-z]/);
+    return m ? Number(m[1]) : null;
+  }
+
+  function addMonths(date, months) {
+    var d = new Date(date.getTime());
+    var targetDay = d.getDate();
+    d.setMonth(d.getMonth() + months);
+    if (d.getDate() < targetDay) d.setDate(0); // clamp to end of shorter month
+    return d;
+  }
+
+  function isoDate(d) {
+    return d.getFullYear() + '-' +
+      String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0');
   }
 
   function escapeHtml(str) {
@@ -281,9 +568,35 @@
       state.tagNumber = data.tagNumber || '';
       state.testType = data.testType || 'Class 1';
       state.recentItems = data.recentItems || [];
+      state.technician = data.technician || '';
+      state.client = data.client || '';
+      state.jobRef = data.jobRef || '';
+      if (data.instrument) state.instrument = data.instrument;
+      if (data.calibration) state.calibration = data.calibration;
     } catch (e) {
       console.error('Load failed', e);
     }
+  }
+
+  function inspSummaryText() {
+    var n = failedFrom(state.passedItems).length;
+    return n ? '\u2014 ' + n + ' failed' : '\u2014 all pass';
+  }
+
+  function renderCheckGrid() {
+    el.checkGrid.innerHTML = INSPECTION_ITEMS.map(function (item) {
+      var passed = state.passedItems.indexOf(item) !== -1;
+      return '<label class="checkItem' + (passed ? '' : ' failed') + '">' +
+        '<input type="checkbox" data-item="' + escapeHtml(item) + '"' +
+        (passed ? ' checked' : '') + '>' +
+        '<span>' + escapeHtml(item) + '</span></label>';
+    }).join('');
+    el.inspSummary.textContent = inspSummaryText();
+  }
+
+  function renderJobSummary() {
+    var parts = [state.client, state.site, state.jobRef].filter(Boolean);
+    el.jobSummary.textContent = parts.length ? '\u2014 ' + parts.join(' \u00b7 ') : '';
   }
 
   function renderChips() {
@@ -312,6 +625,202 @@
     }
   }
 
+  // Store-only ZIP writer. JPEGs are already compressed, so no deflate needed.
+  var CRC_TABLE = (function () {
+    var t = new Uint32Array(256);
+    for (var n = 0; n < 256; n++) {
+      var c = n;
+      for (var k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      t[n] = c >>> 0;
+    }
+    return t;
+  })();
+
+  function crc32(bytes) {
+    var c = 0xFFFFFFFF;
+    for (var i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  function strBytes(str) {
+    var out = [], i, c;
+    for (i = 0; i < str.length; i++) {
+      c = str.charCodeAt(i);
+      if (c < 0x80) out.push(c);
+      else if (c < 0x800) out.push(0xC0 | (c >> 6), 0x80 | (c & 63));
+      else out.push(0xE0 | (c >> 12), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+    }
+    return new Uint8Array(out);
+  }
+
+  function dataUrlBytes(url) {
+    var b64 = url.substring(url.indexOf(',') + 1);
+    var bin = (typeof atob === 'function') ? atob(b64) : Buffer.from(b64, 'base64').toString('binary');
+    var out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+
+  function dosTime(d) {
+    return ((d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1)) & 0xFFFF;
+  }
+  function dosDate(d) {
+    return (((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate()) & 0xFFFF;
+  }
+
+  // files: [{ name, bytes }]
+  function makeZip(files) {
+    var now = new Date();
+    var time = dosTime(now), date = dosDate(now);
+    var chunks = [], central = [], offset = 0;
+
+    files.forEach(function (f) {
+      var name = strBytes(f.name);
+      var crc = crc32(f.bytes);
+      var size = f.bytes.length;
+
+      var lh = new Uint8Array(30 + name.length);
+      var lv = new DataView(lh.buffer);
+      lv.setUint32(0, 0x04034b50, true);
+      lv.setUint16(4, 20, true);
+      lv.setUint16(6, 0, true);
+      lv.setUint16(8, 0, true);          // method 0 = stored
+      lv.setUint16(10, time, true);
+      lv.setUint16(12, date, true);
+      lv.setUint32(14, crc, true);
+      lv.setUint32(18, size, true);
+      lv.setUint32(22, size, true);
+      lv.setUint16(26, name.length, true);
+      lv.setUint16(28, 0, true);
+      lh.set(name, 30);
+
+      chunks.push(lh, f.bytes);
+
+      var ch = new Uint8Array(46 + name.length);
+      var cv = new DataView(ch.buffer);
+      cv.setUint32(0, 0x02014b50, true);
+      cv.setUint16(4, 20, true);
+      cv.setUint16(6, 20, true);
+      cv.setUint16(8, 0, true);
+      cv.setUint16(10, 0, true);
+      cv.setUint16(12, time, true);
+      cv.setUint16(14, date, true);
+      cv.setUint32(16, crc, true);
+      cv.setUint32(20, size, true);
+      cv.setUint32(24, size, true);
+      cv.setUint16(28, name.length, true);
+      cv.setUint16(30, 0, true);
+      cv.setUint16(32, 0, true);
+      cv.setUint16(34, 0, true);
+      cv.setUint16(36, 0, true);
+      cv.setUint32(38, 0, true);
+      cv.setUint32(42, offset, true);
+      ch.set(name, 46);
+      central.push(ch);
+
+      offset += lh.length + size;
+    });
+
+    var cdSize = central.reduce(function (a, c) { return a + c.length; }, 0);
+    var eocd = new Uint8Array(22);
+    var ev = new DataView(eocd.buffer);
+    ev.setUint32(0, 0x06054b50, true);
+    ev.setUint16(4, 0, true);
+    ev.setUint16(6, 0, true);
+    ev.setUint16(8, files.length, true);
+    ev.setUint16(10, files.length, true);
+    ev.setUint32(12, cdSize, true);
+    ev.setUint32(16, offset, true);
+    ev.setUint16(20, 0, true);
+
+    return chunks.concat(central).concat([eocd]);
+  }
+
+
+  // --- photo capture: downscale hard, storage here is tight ---
+  function compressImage(file, cb) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      var img = new Image();
+      img.onload = function () {
+        var max = 1000;
+        var scale = Math.min(1, max / Math.max(img.width, img.height));
+        var w = Math.round(img.width * scale);
+        var h = Math.round(img.height * scale);
+        var c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        cb(c.toDataURL('image/jpeg', 0.55));
+      };
+      img.onerror = function () { cb(null); };
+      img.src = reader.result;
+    };
+    reader.onerror = function () { cb(null); };
+    reader.readAsDataURL(file);
+  }
+
+  function storageUsed() {
+    try {
+      var bytes = (localStorage.getItem(STORAGE_KEY) || '').length;
+      return (bytes / 1048576).toFixed(2);
+    } catch (e) { return '?'; }
+  }
+
+  function renderFollowUp() {
+    var failed = state.tests.filter(function (t) { return t.result === 'fail'; });
+    el.followList.style.display = failed.length ? '' : 'none';
+    if (!failed.length) { el.followContainer.innerHTML = ''; return; }
+
+    el.followContainer.innerHTML = failed.map(function (t) {
+      var done = t.failReason && t.actionTaken;
+      var photos = t.photos || [];
+      return '<div class="followItem" data-id="' + t.id + '">' +
+        '<div class="followHead">' +
+          '<span class="followName">' + escapeHtml(t.appliance) +
+            (t.tagNumber ? ' <span class="tagText">' + escapeHtml(t.tagNumber) + '</span>' : '') +
+          '</span>' +
+          '<span>' +
+            '<span class="' + (done ? 'followDone' : 'followTodo') + '">' +
+              (done ? 'Recorded' : 'Needs detail') + '</span> ' +
+            '<button class="followBtn" data-open="' + t.id + '">Follow up</button>' +
+          '</span>' +
+        '</div>' +
+        '<div class="testMeta">' +
+          (t.location ? '<span>' + escapeHtml(t.location) + '</span>' : '') +
+          '<span>' + escapeHtml(t.date) + '</span>' +
+          ((t.failedItems && t.failedItems.length)
+            ? '<span class="failBadge">' + escapeHtml(t.failedItems.join(', ')) + '</span>' : '') +
+        '</div>' +
+        '<div class="followBody" id="fb-' + t.id + '">' +
+          '<label class="label">Reason for failure</label>' +
+          '<textarea class="field" data-field="failReason" data-id="' + t.id + '">' +
+            escapeHtml(t.failReason || '') + '</textarea>' +
+          '<label class="label">Action taken</label>' +
+          '<select class="field" data-field="actionTaken" data-id="' + t.id + '">' +
+            ACTIONS.map(function (a) {
+              return '<option value="' + escapeHtml(a) + '"' +
+                (t.actionTaken === a ? ' selected' : '') + '>' +
+                escapeHtml(a || 'Select an action') + '</option>';
+            }).join('') +
+          '</select>' +
+          '<label class="label">Reported to</label>' +
+          '<input class="field" type="text" data-field="reportedTo" data-id="' + t.id + '" value="' +
+            escapeHtml(t.reportedTo || '') + '">' +
+          '<label class="label">Photos</label>' +
+          '<div class="photoRow">' +
+            photos.map(function (src, i) {
+              return '<div class="photoThumb"><img src="' + src + '">' +
+                '<button class="photoDel" data-del="' + t.id + '" data-idx="' + i + '">&times;</button></div>';
+            }).join('') +
+            '<button class="addPhoto" data-photo="' + t.id + '">+</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    el.storageNote.textContent = storageUsed() + ' MB of roughly 5 MB used. Photos are the bulk of it \u2014 export the zip, then clear.';
+  }
+
   function renderList() {
     var total = state.tests.length;
     var pass = 0, fail = 0;
@@ -322,6 +831,7 @@
     el.countFail.textContent = fail;
 
     el.testsList.style.display = total ? '' : 'none';
+    el.reportsCard.style.display = total ? '' : 'none';
     if (!total) { el.testsContainer.innerHTML = ''; return; }
 
     el.testsContainer.innerHTML = state.tests.map(function (t) {
@@ -337,6 +847,9 @@
             (t.tagNumber ? '<span class="tagText">' + escapeHtml(t.tagNumber) + '</span>' : '') +
             (place ? '<span>' + escapeHtml(place) + '</span>' : '') +
             '<span>' + escapeHtml(t.date + ' ' + t.time) + '</span>' +
+            (t.retestMonths ? '<span>' + t.retestMonths + 'mth \u2192 ' + escapeHtml(t.nextTestDisplay) + '</span>' : '') +
+            ((t.failedItems && t.failedItems.length)
+              ? '<span class="failBadge">' + t.failedItems.length + ' insp. fail</span>' : '') +
           '</div>' +
           (t.notes ? '<div class="testNotes">' + escapeHtml(t.notes) + '</div>' : '') +
           '<button class="deleteButton" data-id="' + t.id + '">' +
@@ -353,6 +866,17 @@
     el.location.value = state.location;
     el.tagNumber.value = state.tagNumber;
     el.notes.value = state.notes;
+    el.technician.value = state.technician;
+    el.client.value = state.client;
+    el.jobRef.value = state.jobRef;
+    renderJobSummary();
+    el.make.value = state.make;
+    el.model.value = state.model;
+    el.serial.value = state.serial;
+    el.instrument.value = state.instrument;
+    el.calibration.value = state.calibration;
+    var a = [state.make, state.model].filter(Boolean).join(' ');
+    el.assetSummary.textContent = a ? '\u2014 ' + a : '';
   }
 
   function handleTest(result) {
@@ -364,9 +888,29 @@
     }
 
     var now = new Date();
+    var months = retestMonths(state.tagNumber.trim());
+    var next = months ? addMonths(now, months) : null;
+
     state.tests.unshift({
       id: Date.now(),
       appliance: name,
+      technician: state.technician.trim(),
+      client: state.client.trim(),
+      jobRef: state.jobRef.trim(),
+      retestMonths: months,
+      nextTestIso: next ? isoDate(next) : '',
+      nextTestDisplay: next ? next.toLocaleDateString('en-AU') : '',
+      dateIso: isoDate(now),
+      make: state.make.trim(),
+      model: state.model.trim(),
+      serial: state.serial.trim(),
+      polarity: state.testType === 'Lead' ? (result === 'pass' ? 'Pass' : 'Fail') : '',
+      failReason: '',
+      actionTaken: '',
+      reportedTo: '',
+      photos: [],
+      passedItems: state.passedItems.slice(),
+      failedItems: failedFrom(state.passedItems),
       site: state.site.trim(),
       location: state.location.trim(),
       tagNumber: state.tagNumber.trim(),
@@ -383,38 +927,111 @@
 
     if (state.tagNumber.trim()) state.tagNumber = incrementTag(state.tagNumber.trim());
     state.notes = '';
+    state.passedItems = allPassed();
+    state.serial = '';
 
     syncInputs();
+    renderCheckGrid();
     renderChips();
     renderList();
+    renderFollowUp();
     save();
   }
 
-  function exportCSV() {
-    if (!state.tests.length) { alert('Nothing to export yet'); return; }
+  function buildCSV() {
+    var headers = ['Asset ID', 'Description', 'Client', 'Site', 'Location', 'Job Reference',
+                   'Technician', 'Test Type', 'Result', 'Test Date', 'Test Date ISO', 'Time',
+                   'Test Period', 'Next Test Date', 'Next Test Date ISO',
+                   'Make', 'Model', 'Serial Number', 'Polarity', 'Visual Result']
+                   .concat(INSPECTION_ITEMS)
+                   .concat(['Failed Inspection Items', 'Fail Reason', 'Action Taken',
+                            'Reported To', 'Photo Count', 'Notes']);
 
-    var headers = ['Appliance', 'Site', 'Location', 'Tag Number', 'Test Type', 'Result', 'Date', 'Time', 'Notes'];
     var rows = state.tests.map(function (t) {
-      return [t.appliance, t.site || '', t.location || '', t.tagNumber, t.testType || '',
-              t.result.toUpperCase(), t.date, t.time, t.notes];
+      var failed = t.failedItems || [];
+      var perItem = INSPECTION_ITEMS.map(function (item) {
+        return failed.indexOf(item) !== -1 ? 'Fail' : 'Pass';
+      });
+      return [
+        t.tagNumber, t.appliance, t.client || '', t.site || '', t.location || '',
+        t.jobRef || '', t.technician || '', t.testType || '', t.result.toUpperCase(),
+        t.date, t.dateIso || '', t.time,
+        t.retestMonths ? t.retestMonths + ' months' : '',
+        t.nextTestDisplay || '', t.nextTestIso || '',
+        t.make || '', t.model || '', t.serial || '', t.polarity || '',
+        failed.length ? 'Fail' : 'Pass'
+      ].concat(perItem).concat([
+        failed.length ? failed.join('; ') : '',
+        t.failReason || '', t.actionTaken || '', t.reportedTo || '',
+        (t.photos && t.photos.length) ? t.photos.length : 0,
+        t.notes
+      ]);
     });
 
-    var csv = [headers].concat(rows).map(function (row) {
+    return [headers].concat(rows).map(function (row) {
       return row.map(function (cell) {
         return '"' + String(cell == null ? '' : cell).replace(/"/g, '""') + '"';
       }).join(',');
     }).join('\r\n');
+  }
 
-    var stamp = new Date().toISOString().split('T')[0];
-    var blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  function stamp() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') +
+      '-' + String(d.getDate()).padStart(2, '0');
+  }
+
+  function download(blob, filename) {
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url;
-    a.download = 'PAT-Tests-' + stamp + '.csv';
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+  }
+
+  function safeName(str) {
+    return String(str || 'asset').replace(/[^\w.-]/g, '_');
+  }
+
+  function exportCSV() {
+    if (!state.tests.length) { alert('Nothing to export yet'); return; }
+    download(new Blob(['\ufeff' + buildCSV()], { type: 'text/csv;charset=utf-8' }),
+             'PAT-Tests-' + stamp() + '.csv');
+  }
+
+  function exportZip() {
+    if (!state.tests.length) { alert('Nothing to export yet'); return; }
+
+    var base = 'PAT-' + safeName(state.jobRef || state.site || 'Tests') + '-' + stamp();
+    var files = [{ name: base + '.csv', bytes: strBytes('\ufeff' + buildCSV()) }];
+    var photoCount = 0;
+
+    state.tests.forEach(function (t) {
+      (t.photos || []).forEach(function (src, i) {
+        files.push({
+          name: 'photos/' + safeName(t.tagNumber || t.appliance) + '-' + (i + 1) + '.jpg',
+          bytes: dataUrlBytes(src)
+        });
+        photoCount++;
+      });
+    });
+
+    try {
+      var parts = makeZip(files);
+      download(new Blob(parts, { type: 'application/zip' }), base + '.zip');
+    } catch (e) {
+      alert('Could not build the zip. Export the CSV instead and let me know.');
+      console.error(e);
+      return;
+    }
+
+    if (!photoCount) {
+      // No photos is normal on a clean job — just don't imply otherwise.
+      console.log('Zip contains the CSV only; no photos attached.');
+    }
   }
 
   function clearTests() {
@@ -431,7 +1048,297 @@
 
     state.tests = [];
     renderList();
+    renderFollowUp();
     save();
+  }
+
+  // ================= reports =================
+  // Renders print-ready HTML into #printRoot, then hands off to the browser's
+  // print dialog. On iOS that means Share > Print > Save to Files as PDF.
+
+  var STANDARD = 'AS/NZS 3760:2022';
+  var STANDARD_LONG = 'AS/NZS 3760:2022 In-service safety inspection and testing of electrical equipment';
+
+  function esc(v) { return escapeHtml(v == null ? '' : v); }
+
+  function ordinal(n) {
+    if (n >= 11 && n <= 13) return n + 'th';
+    var last = n % 10;
+    return n + (last === 1 ? 'st' : last === 2 ? 'nd' : last === 3 ? 'rd' : 'th');
+  }
+
+  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  function longDate(iso) {
+    if (!iso) return '';
+    var p = iso.split('-');
+    if (p.length !== 3) return iso;
+    return ordinal(Number(p[2])) + ' ' + MONTHS[Number(p[1]) - 1] + ' ' + p[0];
+  }
+
+  function jobContext() {
+    function distinct(key) {
+      var seen = [];
+      state.tests.forEach(function (t) {
+        var v = (t[key] || '').trim();
+        if (v && seen.indexOf(v) === -1) seen.push(v);
+      });
+      return seen;
+    }
+    var dates = state.tests.map(function (t) { return t.dateIso || ''; })
+                           .filter(Boolean).sort();
+    return {
+      clients: distinct('client'),
+      sites: distinct('site'),
+      refs: distinct('jobRef'),
+      techs: distinct('technician'),
+      start: dates[0] || '',
+      end: dates[dates.length - 1] || ''
+    };
+  }
+
+  function periodText(ctx) {
+    if (!ctx.start) return '';
+    if (!ctx.end || ctx.end === ctx.start) return longDate(ctx.start);
+    return longDate(ctx.start) + ' to ' + longDate(ctx.end);
+  }
+
+  function groupByArea(list) {
+    var order = [], map = {};
+    list.forEach(function (t) {
+      var area = (t.location || '').trim() || 'Unspecified';
+      if (!map[area]) { map[area] = []; order.push(area); }
+      map[area].push(t);
+    });
+    order.forEach(function (a) {
+      map[a].sort(function (x, y) {
+        return String(x.tagNumber).localeCompare(String(y.tagNumber));
+      });
+    });
+    return { order: order, map: map };
+  }
+
+  function docHead(title, ctx) {
+    var fails = state.tests.filter(function (t) { return t.result === 'fail'; }).length;
+    return '' +
+      '<div class="rpt-brand">' +
+        '<div><div class="rpt-co">MARTOX TAGGING</div>' +
+        '<div class="rpt-sub">Test and tag services</div></div>' +
+        '<div class="rpt-contact">' + esc(COMPANY.phone) + '<br>' + esc(COMPANY.address) + '</div>' +
+      '</div>' +
+      '<h1 class="rpt-h1">' + esc(title) + '</h1>' +
+      '<div class="rpt-meta">' +
+        '<div><span>CLIENT</span>' + (esc(ctx.clients[0]) || '&mdash;') +
+          (ctx.sites[0] ? '<br>' + esc(ctx.sites[0]) : '') + '</div>' +
+        '<div><span>JOB</span>' + (esc(ctx.refs[0]) || '&mdash;') +
+          '<br>' + esc(periodText(ctx)) + '</div>' +
+        '<div><span>SUMMARY</span>' + state.tests.length + ' tests<br>' +
+          fails + (fails === 1 ? ' failure' : ' failures') + '</div>' +
+      '</div>';
+  }
+
+  function instrumentNote() {
+    return '<p class="rpt-note">Testing carried out with ' + esc(state.instrument) +
+      '. Instrument calibration: ' + esc(state.calibration) +
+      '. Tests performed to the requirements of ' + STANDARD_LONG + '.</p>';
+  }
+
+  function certificateHTML(ctx) {
+    var total = state.tests.length;
+    var fails = state.tests.filter(function (t) { return t.result === 'fail'; }).length;
+    var where = [ctx.clients[0], ctx.sites[0]].filter(Boolean).join(', ') || 'The client';
+
+    var rows = function (pairs) {
+      return '<table class="rpt-kv">' + pairs.map(function (p) {
+        return '<tr><td>' + p[0] + '</td><td class="rpt-num">' + p[1] + '</td></tr>';
+      }).join('') + '</table>';
+    };
+
+    return '<section class="rpt-page">' + docHead('Certificate of Conformance', ctx) +
+      '<p>' + esc(where) + ' presented the following equipment for in-service electrical ' +
+      'safety inspection and testing during the period <b>' + esc(periodText(ctx)) + '</b>.</p>' +
+
+      '<h2 class="rpt-h2">Electrical appliances and leads</h2>' +
+      rows([
+        ['Items that satisfied the thresholds detailed in ' + STANDARD, total - fails],
+        ['Items that did not satisfy the thresholds detailed in ' + STANDARD, fails]
+      ]) +
+
+      '<h2 class="rpt-h2">Not within the scope of this inspection</h2>' +
+      rows([
+        ['RCDs &mdash; trip-time testing not performed', 'N/A'],
+        ['Microwaves &mdash; leakage testing to AS/NZS 60335.2.25 not performed', 'N/A'],
+        ['Emergency and exit lighting &mdash; AS/NZS 2293.2', 'N/A']
+      ]) +
+
+      '<p>Martox Tagging has inspected and tested the equipment found at the above site and ' +
+      'recorded the results in the accompanying reports. The information above is accurate at ' +
+      'the time of issue. Please advise Martox Tagging immediately of any error or omission.</p>' +
+
+      (fails
+        ? '<p><b>' + fails + ' item' + (fails === 1 ? '' : 's') + ' failed and ' +
+          (fails === 1 ? 'has' : 'have') + ' been removed from service.</b> Refer to the Fail ' +
+          'Report for the defects recorded and the action taken.</p>'
+        : '') +
+
+      '<table class="rpt-sig"><tr>' +
+        '<td><span>TESTED BY</span>' + (esc(ctx.techs.join(', ')) || '&mdash;') + '</td>' +
+        '<td><span>DATE OF ISSUE</span>' + longDate(isoDate(new Date())) + '</td>' +
+        '<td><span>SIGNED</span></td>' +
+      '</tr></table>' +
+      instrumentNote() +
+    '</section>';
+  }
+
+  function conciseHTML(ctx) {
+    var g = groupByArea(state.tests);
+    var body = g.order.map(function (area) {
+      var items = g.map[area];
+      var passed = items.filter(function (t) { return t.result !== 'fail'; }).length;
+      return '<h2 class="rpt-h2">' + esc(area.toUpperCase()) +
+        '<em>' + passed + ' of ' + items.length + ' passed</em></h2>' +
+        '<table class="rpt-tbl"><thead><tr>' +
+          '<th>ASSET ID</th><th>ASSET</th><th>TECHNICIAN</th>' +
+          '<th>TEST DATE</th><th>NEXT TEST</th><th class="rpt-r">RESULT</th>' +
+        '</tr></thead><tbody>' +
+        items.map(function (t) {
+          var bad = t.result === 'fail';
+          return '<tr>' +
+            '<td class="rpt-mono">' + esc(t.tagNumber) + '</td>' +
+            '<td>' + esc(t.appliance) + '</td>' +
+            '<td>' + esc(t.technician) + '</td>' +
+            '<td>' + esc(t.date) + '</td>' +
+            '<td>' + (esc(t.nextTestDisplay) || '&mdash;') + '</td>' +
+            '<td class="rpt-r ' + (bad ? 'rpt-fail' : 'rpt-pass') + '">' +
+              (bad ? 'Fail' : 'Pass') + '</td>' +
+          '</tr>';
+        }).join('') +
+        '</tbody></table>';
+    }).join('');
+
+    return '<section class="rpt-page">' + docHead('Concise Test Report', ctx) +
+      body + instrumentNote() + '</section>';
+  }
+
+  function failHTML(ctx) {
+    var failures = state.tests.filter(function (t) { return t.result === 'fail'; });
+    if (!failures.length) return '';
+
+    var g = groupByArea(failures);
+    var body = g.order.map(function (area) {
+      return '<h2 class="rpt-h2">' + esc(area.toUpperCase()) + '</h2>' +
+        g.map[area].map(function (t) {
+          var failed = t.failedItems || [];
+          var insp = INSPECTION_ITEMS.map(function (item) {
+            var bad = failed.indexOf(item) !== -1;
+            return '<tr><td>' + esc(item) + '</td>' +
+              '<td class="rpt-r ' + (bad ? 'rpt-fail' : 'rpt-pass') + '">' +
+              (bad ? 'Fail' : 'Pass') + '</td></tr>';
+          }).join('');
+
+          var detail = [
+            ['REASON FOR FAILURE', t.failReason],
+            ['ACTION TAKEN', t.actionTaken],
+            ['REPORTED TO', t.reportedTo],
+            ['NOTES', t.notes]
+          ].filter(function (d) { return (d[1] || '').trim(); })
+           .map(function (d) {
+             return '<div class="rpt-dt"><span>' + d[0] + '</span>' + esc(d[1]) + '</div>';
+           }).join('');
+
+          if (!detail) {
+            detail = '<div class="rpt-dt"><span>FOLLOW-UP</span>' +
+              '<span class="rpt-fail">Not recorded</span></div>';
+          }
+
+          var photos = (t.photos || []).map(function (src) {
+            return '<img class="rpt-photo" src="' + src + '">';
+          }).join('');
+
+          return '<div class="rpt-item">' +
+            '<div class="rpt-itemhead"><b>' + esc(t.appliance) + '</b>' +
+              '<span class="rpt-mono">' + esc(t.tagNumber) + '</span>' +
+              '<span class="rpt-fail rpt-r">FAIL</span></div>' +
+            '<div class="rpt-cols">' +
+              '<table class="rpt-tbl rpt-insp"><thead><tr>' +
+                '<th>INSPECTION ITEM</th><th class="rpt-r">RESULT</th>' +
+              '</tr></thead><tbody>' + insp + '</tbody></table>' +
+              '<div class="rpt-detail">' + detail + '</div>' +
+            '</div>' +
+            (photos ? '<div class="rpt-dt"><span>PHOTOGRAPHS</span></div>' +
+                      '<div class="rpt-photos">' + photos + '</div>' : '') +
+          '</div>';
+        }).join('');
+    }).join('');
+
+    return '<section class="rpt-page">' + docHead('Fail Report', ctx) +
+      '<p>' + failures.length + ' item' + (failures.length === 1 ? '' : 's') +
+      ' failed inspection or testing and ' +
+      (failures.length === 1 ? 'has' : 'have') + ' been removed from service.</p>' +
+      body + instrumentNote() + '</section>';
+  }
+
+  function printHTML(html) {
+    if (!html) { alert('Nothing to report on yet'); return; }
+    var root = document.getElementById('printRoot');
+    root.innerHTML =
+      '<div class="rpt-bar">' +
+        '<span>Report preview</span>' +
+        '<span>' +
+          '<button class="ghost" id="rptPrint">Print</button>&nbsp;' +
+          '<button id="rptClose">Done</button>' +
+        '</span>' +
+      '</div>' + html;
+    document.body.classList.add('printing');
+    window.scrollTo(0, 0);
+
+    document.getElementById('rptClose').addEventListener('click', cleanupPrint);
+    document.getElementById('rptPrint').addEventListener('click', function () {
+      try { window.print(); } catch (e) {
+        alert('Printing is unavailable here. Use the browser Share menu, then Print.');
+      }
+    });
+
+    // Give the layout a beat to settle, and images a chance to decode.
+    setTimeout(function () {
+      try {
+        window.print();
+      } catch (e) {
+        alert('Printing is unavailable here. Use the browser Share menu, then Print.');
+      }
+    }, 250);
+  }
+
+  function cleanupPrint() {
+    document.body.classList.remove('printing');
+    var root = document.getElementById('printRoot');
+    if (root) root.innerHTML = '';
+  }
+
+  window.addEventListener('afterprint', cleanupPrint);
+
+  function buildReport(which) {
+    if (!state.tests.length) { alert('Nothing to report on yet'); return; }
+    var ctx = jobContext();
+
+    var warn = [];
+    if (ctx.clients.length > 1) warn.push('client');
+    if (ctx.sites.length > 1) warn.push('site');
+    if (ctx.refs.length > 1) warn.push('job reference');
+    if (warn.length && !confirm(
+      'This export contains more than one ' + warn.join(' and ') + '.\n\n' +
+      'The report will use the first of each. Start a new job to keep jobs separate.\n\n' +
+      'Continue anyway?')) return;
+
+    if (which === 'certificate') return printHTML(certificateHTML(ctx));
+    if (which === 'concise') return printHTML(conciseHTML(ctx));
+    if (which === 'fail') {
+      var f = failHTML(ctx);
+      if (!f) { alert('No failures recorded, so there is no Fail Report.'); return; }
+      return printHTML(f);
+    }
+    printHTML(certificateHTML(ctx) + conciseHTML(ctx) + failHTML(ctx));
   }
 
   // --- events ---
@@ -439,6 +1346,143 @@
     state.appliance = this.value; renderChips(); save();
   });
   el.site.addEventListener('input', function () { state.site = this.value; save(); });
+  el.technician.addEventListener('input', function () {
+    state.technician = this.value; renderJobSummary(); save();
+  });
+  el.client.addEventListener('input', function () { state.client = this.value; save(); });
+  el.jobRef.addEventListener('input', function () {
+    state.jobRef = this.value; renderJobSummary(); save();
+  });
+
+  el.checkGrid.addEventListener('change', function (e) {
+    var box = e.target;
+    if (!box || box.type !== 'checkbox') return;
+    var item = box.getAttribute('data-item');
+    if (box.checked) {
+      if (state.passedItems.indexOf(item) === -1) state.passedItems.push(item);
+    } else {
+      state.passedItems = state.passedItems.filter(function (i) { return i !== item; });
+    }
+    box.parentNode.classList.toggle('failed', !box.checked);
+    el.inspSummary.textContent = inspSummaryText();
+  });
+
+  document.getElementById('newJobBtn').addEventListener('click', function () {
+    if (state.tests.length && !confirm(
+      'Start a new job?\n\n' +
+      'Clears: client, site, job reference and location.\n' +
+      'Kept: technician, tag number, remembered items and all logged tests.\n\n' +
+      'Export the current job\'s CSV first if you have not already.'
+    )) return;
+
+    state.client = '';
+    state.site = '';
+    state.jobRef = '';
+    state.location = '';
+    syncInputs();
+    save();
+    el.client.focus();
+  });
+
+  el.make.addEventListener('input', function () { state.make = this.value; syncInputs(); save(); });
+  el.model.addEventListener('input', function () { state.model = this.value; syncInputs(); save(); });
+  el.serial.addEventListener('input', function () { state.serial = this.value; save(); });
+
+  function findTest(id) {
+    for (var i = 0; i < state.tests.length; i++) {
+      if (state.tests[i].id === Number(id)) return state.tests[i];
+    }
+    return null;
+  }
+
+  // open / close a follow-up form
+  el.followContainer.addEventListener('click', function (e) {
+    var open = e.target.closest('[data-open]');
+    if (open) {
+      var body = document.getElementById('fb-' + open.getAttribute('data-open'));
+      if (body) body.classList.toggle('open');
+      return;
+    }
+
+    var del = e.target.closest('[data-del]');
+    if (del) {
+      var t = findTest(del.getAttribute('data-del'));
+      if (t && t.photos) {
+        t.photos.splice(Number(del.getAttribute('data-idx')), 1);
+        renderFollowUp();
+        document.getElementById('fb-' + t.id).classList.add('open');
+        save();
+      }
+      return;
+    }
+
+    var add = e.target.closest('[data-photo]');
+    if (add) {
+      var id = add.getAttribute('data-photo');
+      var input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.setAttribute('capture', 'environment');
+      input.addEventListener('change', function () {
+        var file = this.files && this.files[0];
+        if (!file) return;
+        compressImage(file, function (dataUrl) {
+          if (!dataUrl) { alert('Could not read that image'); return; }
+          var t = findTest(id);
+          if (!t) return;
+          t.photos = t.photos || [];
+          if (t.photos.length >= 4) { alert('Four photos per item is the limit'); return; }
+          t.photos.push(dataUrl);
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          } catch (err) {
+            t.photos.pop();
+            alert('Storage is full. Save your photos out and clear them, then try again.');
+            return;
+          }
+          renderFollowUp();
+          document.getElementById('fb-' + id).classList.add('open');
+        });
+      });
+      input.click();
+    }
+  });
+
+  // follow-up text / select fields
+  el.followContainer.addEventListener('input', function (e) {
+    var f = e.target.getAttribute && e.target.getAttribute('data-field');
+    if (!f) return;
+    var t = findTest(e.target.getAttribute('data-id'));
+    if (!t) return;
+    t[f] = e.target.value;
+    save();
+  });
+  el.followContainer.addEventListener('change', function (e) {
+    var f = e.target.getAttribute && e.target.getAttribute('data-field');
+    if (f !== 'actionTaken') return;
+    var t = findTest(e.target.getAttribute('data-id'));
+    if (!t) return;
+    t.actionTaken = e.target.value;
+    save();
+    var body = document.getElementById('fb-' + t.id);
+    renderFollowUp();
+    if (body) document.getElementById('fb-' + t.id).classList.add('open');
+  });
+
+  document.getElementById('assetToggle').addEventListener('click', function () {
+    togglePanel(el.assetPanel, el.assetCaret);
+  });
+
+  function togglePanel(panel, caret) {
+    var open = panel.classList.toggle('open');
+    caret.innerHTML = open ? '&#9650;' : '&#9660;';
+  }
+  document.getElementById('jobToggle').addEventListener('click', function () {
+    togglePanel(el.jobPanel, el.jobCaret);
+  });
+  document.getElementById('inspToggle').addEventListener('click', function () {
+    togglePanel(el.inspPanel, el.inspCaret);
+  });
   el.location.addEventListener('input', function () { state.location = this.value; save(); });
   el.tagNumber.addEventListener('input', function () { state.tagNumber = this.value; save(); });
   el.notes.addEventListener('input', function () { state.notes = this.value; save(); });
@@ -466,12 +1510,22 @@
     var id = Number(btn.getAttribute('data-id'));
     state.tests = state.tests.filter(function (t) { return t.id !== id; });
     renderList();
+    renderFollowUp();
     save();
   });
 
   document.getElementById('passBtn').addEventListener('click', function () { handleTest('pass'); });
   document.getElementById('failBtn').addEventListener('click', function () { handleTest('fail'); });
   document.getElementById('exportBtn').addEventListener('click', exportCSV);
+  document.getElementById('zipBtn').addEventListener('click', exportZip);
+
+  el.instrument.addEventListener('input', function () { state.instrument = this.value; save(); });
+  el.calibration.addEventListener('input', function () { state.calibration = this.value; save(); });
+
+  document.querySelector('.reportRow').addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-report]');
+    if (btn) buildReport(btn.getAttribute('data-report'));
+  });
   document.getElementById('clearBtn').addEventListener('click', clearTests);
 
   document.getElementById('hideFormBtn').addEventListener('click', function () {
@@ -485,10 +1539,19 @@
 
   // --- init ---
   load();
+  if (!state.passedItems || !state.passedItems.length) state.passedItems = allPassed();
   syncInputs();
+  renderCheckGrid();
   renderChips();
   renderTypeSelector();
   renderList();
+  renderFollowUp();
+
+  // Prompt job setup on a fresh start; stay out of the way once it's filled in.
+  if (!state.client && !state.site && !state.jobRef) {
+    el.jobPanel.classList.add('open');
+    el.jobCaret.innerHTML = '&#9650;';
+  }
 })();
 </script>
 <script>
