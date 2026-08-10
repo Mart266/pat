@@ -615,6 +615,22 @@
   </button>
   <div class="testsList panelBody" id="settingsPanel" style="margin-bottom:16px">
     <div class="settingRow">
+      <div class="settingLabel">Business details</div>
+      <div class="settingHint">Used on your reports. Held only in this browser on this
+        device &mdash; not part of the app's published source.</div>
+      <label class="label" for="coName">Business name</label>
+      <input class="field" type="text" id="coName" autocomplete="off">
+      <label class="label" for="coAbn">ABN</label>
+      <input class="field" type="text" id="coAbn" autocomplete="off">
+      <label class="label" for="coPhone">Phone</label>
+      <input class="field" type="text" id="coPhone" autocomplete="off">
+      <label class="label" for="coWeb">Website</label>
+      <input class="field" type="text" id="coWeb" autocomplete="off">
+      <label class="label" for="coAddress">Address</label>
+      <input class="field" type="text" id="coAddress" autocomplete="off">
+    </div>
+
+    <div class="settingRow">
       <div class="settingLabel">Appearance</div>
       <div class="settingHint">System follows your phone's light or dark setting.</div>
       <div class="segRow" id="themeRow">
@@ -694,7 +710,7 @@
     testType: 'Class 1',
     notes: '',
     recentItems: [],
-    technician: 'Martin Nguyen EV032',
+    technician: '',
     client: '',
     jobRef: '',
     passedItems: [],
@@ -702,18 +718,15 @@
     model: '',
     serial: '',
     itemTypes: {},
+    company: { name: '', abn: '', phone: '', web: '', address: '' },
     theme: 'system',
     instrument: 'Aegis Patrol Pro CZ5001',
     calibration: 'Jul 2026'
   };
 
-  var COMPANY = {
-    name: 'Test Tag Melbourne',
-    address: '13 Slough St, Deer Park VIC 3023',
-    phone: '0408 130 066',
-    abn: '36 246 545 097',
-    web: 'testtagmelb.com.au'
-  };
+  // Business details are entered in Settings and held only in this browser's
+  // storage. Nothing identifying is committed to the source.
+  var COMPANY_FIELDS = ['name', 'abn', 'phone', 'web', 'address'];
 
   var ACTIONS = [
     '',
@@ -771,7 +784,12 @@
     storageNote: document.getElementById('storageNote'),
     instrument: document.getElementById('instrument'),
     calibration: document.getElementById('calibration'),
-    reportsCard: document.getElementById('reportsCard')
+    reportsCard: document.getElementById('reportsCard'),
+    coName: document.getElementById('coName'),
+    coAbn: document.getElementById('coAbn'),
+    coPhone: document.getElementById('coPhone'),
+    coWeb: document.getElementById('coWeb'),
+    coAddress: document.getElementById('coAddress')
   };
 
   // Increments the last run of digits in a tag, preserving any prefix and zero-padding.
@@ -835,6 +853,11 @@
       if (typeof data.technician === 'string') state.technician = data.technician;
       state.client = data.client || '';
       state.jobRef = data.jobRef || '';
+      if (data.company) {
+        COMPANY_FIELDS.forEach(function (k) {
+          if (typeof data.company[k] === 'string') state.company[k] = data.company[k];
+        });
+      }
       if (data.theme) state.theme = data.theme;
       if (data.instrument) {
         // fold the old verbose default forward, but keep anything hand-edited
@@ -1273,6 +1296,11 @@
     el.serial.value = state.serial;
     el.instrument.value = state.instrument;
     el.calibration.value = state.calibration;
+    el.coName.value = state.company.name;
+    el.coAbn.value = state.company.abn;
+    el.coPhone.value = state.company.phone;
+    el.coWeb.value = state.company.web;
+    el.coAddress.value = state.company.address;
     var a = [state.make, state.model].filter(Boolean).join(' ');
     el.assetSummary.textContent = a ? '\u2014 ' + a : '';
   }
@@ -1582,14 +1610,26 @@
     return { order: order, map: map };
   }
 
+  function contactBlock() {
+    var c = state.company;
+    var lines = [];
+    if (c.phone) lines.push('<b>' + esc(c.phone) + '</b>');
+    if (c.web) lines.push(esc(c.web));
+    if (c.address) lines.push(esc(c.address));
+    if (c.abn) lines.push('ABN ' + esc(c.abn));
+    return lines.join('<br>');
+  }
+
+  function businessName() {
+    return state.company.name || 'This business';
+  }
+
   function docHead(title, ctx) {
     var fails = state.tests.filter(function (t) { return t.result === 'fail'; }).length;
     return '' +
       '<div class="rpt-band">' +
-        '<img src="./logo-letterhead.svg" alt="' + esc(COMPANY.name) + '">' +
-        '<div class="contact"><b>' + esc(COMPANY.phone) + '</b><br>' +
-          esc(COMPANY.web) + '<br>' + esc(COMPANY.address) +
-          '<br>ABN ' + esc(COMPANY.abn) + '</div>' +
+        '<img src="./logo-letterhead.svg" alt="' + esc(businessName()) + '">' +
+        '<div class="contact">' + contactBlock() + '</div>' +
       '</div>' +
       '<div class="rpt-accent"></div>' +
       '<h1 class="rpt-h1">' + esc(title) + '</h1>' +
@@ -1643,10 +1683,10 @@
         ['Emergency and exit lighting &mdash; AS/NZS 2293.2', 'N/A']
       ]) +
 
-      '<p>' + esc(COMPANY.name) + ' has inspected and tested the equipment found at the above ' +
-      'site and recorded the results in the accompanying reports. The information above is ' +
-      'accurate at the time of issue. Please advise ' + esc(COMPANY.name) + ' immediately of ' +
-      'any error or omission.</p>' +
+      '<p>' + esc(businessName()) + ' has inspected and tested the equipment found at the ' +
+      'above site and recorded the results in the accompanying reports. The information above ' +
+      'is accurate at the time of issue. Please advise ' + esc(businessName()) +
+      ' immediately of any error or omission.</p>' +
 
       (fails
         ? '<p><b>' + fails + ' item' + (fails === 1 ? '' : 's') + ' failed and ' +
@@ -1816,7 +1856,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v18';
+  var APP_VERSION = 'v32';
 
   function applyTheme() {
     var pref = state.theme || 'system';
@@ -1859,9 +1899,11 @@
       ' accounting for ' + (photos / 1048576).toFixed(2) + ' MB. ' +
       state.recentItems.length + ' remembered item names.';
 
-    document.getElementById('aboutText').textContent =
-      COMPANY.name + ' \u00b7 ABN ' + COMPANY.abn + ' \u00b7 app ' + APP_VERSION +
-      ' \u00b7 ' + state.tests.length + ' records held on this device.';
+    var bits = [state.company.name || 'Business details not set'];
+    if (state.company.abn) bits.push('ABN ' + state.company.abn);
+    bits.push('app ' + APP_VERSION);
+    bits.push(state.tests.length + ' records held on this device');
+    document.getElementById('aboutText').textContent = bits.join(' \u00b7 ');
   }
 
   // Minimal CSV reader: handles quoted fields, doubled quotes and CRLF.
@@ -2260,6 +2302,14 @@
 
   el.instrument.addEventListener('input', function () { state.instrument = this.value; save(); });
   el.calibration.addEventListener('input', function () { state.calibration = this.value; save(); });
+
+  [['coName','name'],['coAbn','abn'],['coPhone','phone'],
+   ['coWeb','web'],['coAddress','address']].forEach(function (pair) {
+    el[pair[0]].addEventListener('input', function () {
+      state.company[pair[1]] = this.value;
+      save();
+    });
+  });
 
   document.querySelector('.reportRow').addEventListener('click', function (e) {
     var btn = e.target.closest('[data-report]');

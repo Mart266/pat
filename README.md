@@ -3,8 +3,6 @@
 Offline-capable web app for logging portable appliance testing on site, producing
 client reports, and exporting the job as a zip.
 
-Test Tag Melbourne · ABN 36 246 545 097
-
 ## Files
 
 | File | Purpose |
@@ -77,6 +75,12 @@ where you type.
 
 Changing an icon or `logo.png` also needs the `CACHE_VERSION` bump, and iOS caches the
 home screen icon at install — delete the icon and re-add it to pick up new artwork.
+
+## Business details
+
+The app ships with no business name, ABN, phone number or address in its source. Enter them
+once under **Settings → Business details**; they are stored in the browser on that device and
+appear on the reports from there. They are not part of this repository.
 
 ## Branding
 
