@@ -509,21 +509,6 @@
   html[data-theme="dark"] .segRow button.on {
     background-color: #f4f4f5; color: #18181b; border-color: #f4f4f5;
   }
-  .forgetRow { display: flex; flex-wrap: wrap; gap: 6px; }
-  .forgetChip {
-    display: inline-flex; align-items: center; gap: 7px; padding: 6px 8px 6px 10px;
-    border: 1px solid #d4d4d8; background-color: #fafafa; border-radius: 14px;
-    font-size: 12px; color: #3f3f46; font-family: inherit;
-  }
-  .forgetChip button {
-    border: none; background: #e4e4e7; color: #52525b; width: 18px; height: 18px;
-    border-radius: 9px; font-size: 12px; line-height: 1; cursor: pointer;
-    font-family: inherit; padding: 0;
-  }
-  html[data-theme="dark"] .forgetChip {
-    background-color: #1c1c1f; border-color: #3f3f46; color: #d4d4d8;
-  }
-  html[data-theme="dark"] .forgetChip button { background: #3f3f46; color: #e4e4e7; }
   .dataBtns { display: flex; gap: 6px; flex-wrap: wrap; }
   .dataBtns button {
     padding: 8px 11px; border: 1px solid #d4d4d8; background-color: #fff;
@@ -606,6 +591,7 @@
       <button class="typeButton" data-type="Multi-port">Multi-port</button>
       <button class="typeButton" data-type="Microwave">Microwave</button>
       <button class="typeButton" data-type="Visual">Visual</button>
+      <button class="typeButton" data-type="3 Phase">3 Phase</button>
     </div>
 
     <div id="portWrap" style="display:none">
@@ -680,6 +666,30 @@
     <div class="storageNote">Opens the print dialog. On iPhone choose Print, then pinch the preview and share it as a PDF.</div>
   </div>
 
+  <div class="testsList" id="followList" style="display:none">
+    <div class="listHeader">
+      <h2 class="listTitle">Failed items — follow up</h2>
+    </div>
+    <div id="followContainer"></div>
+    <button class="toggleButton" id="failMore" style="display:none;border:none;border-top:1px solid #f4f4f5;border-radius:0"></button>
+    <div class="storageNote" id="storageNote"></div>
+  </div>
+
+  <div class="testsList" id="testsList" style="display:none">
+    <div class="listHeader">
+      <h2 class="listTitle">Logged tests</h2>
+      <div class="listActions">
+      <button class="exportButton" id="zipBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+        Export ZIP
+      </button>
+      <button class="clearButton" id="exportBtn">CSV</button>
+      <button class="clearButton" id="clearBtn">Clear</button>
+      </div>
+    </div>
+    <div class="testsContainer" id="testsContainer"></div>
+  </div>
+
   <button class="panelToggle" id="settingsToggle">
     <span>Settings</span>
     <span class="caret" id="settingsCaret">&#9660;</span>
@@ -706,10 +716,13 @@
     </div>
 
     <div class="settingRow">
-      <div class="settingLabel">Remembered items</div>
-      <div class="settingHint">Tap the cross to forget a name &mdash; useful after a typo.
-        Logged tests are not affected.</div>
-      <div class="forgetRow" id="itemManage"></div>
+      <div class="settingLabel">Remembered entries</div>
+      <div class="settingHint">Pick an appliance name, location or fail reason and delete it
+        &mdash; useful after a typo. Logged tests are not affected.</div>
+      <select class="field" id="forgetSelect"></select>
+      <div class="dataBtns">
+        <button id="forgetBtn">Delete selected</button>
+      </div>
     </div>
 
     <div class="settingRow">
@@ -725,30 +738,6 @@
       <div class="settingLabel">About</div>
       <div class="settingHint" id="aboutText">&nbsp;</div>
     </div>
-  </div>
-
-  <div class="testsList" id="followList" style="display:none">
-    <div class="listHeader">
-      <h2 class="listTitle">Failed items — follow up</h2>
-    </div>
-    <div id="followContainer"></div>
-    <button class="toggleButton" id="failMore" style="display:none;border:none;border-top:1px solid #f4f4f5;border-radius:0"></button>
-    <div class="storageNote" id="storageNote"></div>
-  </div>
-
-  <div class="testsList" id="testsList" style="display:none">
-    <div class="listHeader">
-      <h2 class="listTitle">Logged tests</h2>
-      <div class="listActions">
-      <button class="exportButton" id="zipBtn">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-        Export ZIP
-      </button>
-      <button class="clearButton" id="exportBtn">CSV</button>
-      <button class="clearButton" id="clearBtn">Clear</button>
-      </div>
-    </div>
-    <div class="testsContainer" id="testsContainer"></div>
   </div>
 
 </div>
@@ -808,6 +797,7 @@
   var MULTI = 'Multi-port';
   var MICROWAVE = 'Microwave';
   var VISUAL = 'Visual';
+  var THREE_PHASE = '3 Phase';
 
   var ACTIONS = [
     '',
@@ -815,7 +805,8 @@
     'Removed from site',
     'Sent for repair',
     'Repaired and retested',
-    'Destroyed / disposed'
+    'Destroyed / disposed',
+    'Other'
   ];
 
   var INSPECTION_ITEMS = [
@@ -1388,6 +1379,12 @@
 
 
 
+  // What to print for the action: the free text when Other was chosen.
+  function actionText(t) {
+    if (t.actionTaken === 'Other') return (t.actionOther || '').trim() || 'Other';
+    return t.actionTaken || '';
+  }
+
   function renderFollowUp() {
     var failed = state.tests.filter(function (t) { return t.result === 'fail'; });
     el.followList.style.display = failed.length ? '' : 'none';
@@ -1395,7 +1392,8 @@
 
     var shown = showAllFails ? failed : failed.slice(0, FAILS_VISIBLE);
     el.followContainer.innerHTML = shown.map(function (t) {
-      var done = t.failReason && t.actionTaken;
+      var done = t.failReason && t.actionTaken &&
+                 (t.actionTaken !== 'Other' || (t.actionOther || '').trim());
       var photos = (t.photoIds || []).filter(function (id) { return photoUrls[id]; });
       return '<div class="followItem" data-id="' + t.id + '">' +
         '<div class="followHead">' +
@@ -1433,6 +1431,11 @@
                 escapeHtml(a || 'Select an action') + '</option>';
             }).join('') +
           '</select>' +
+          ((t.actionTaken === 'Other')
+            ? '<label class="label">Action taken \u2014 detail</label>' +
+              '<input class="field" type="text" data-field="actionOther" data-id="' + t.id +
+              '" value="' + escapeHtml(t.actionOther || '') + '">'
+            : '') +
           '<label class="label">Reported to</label>' +
           '<input class="field" type="text" data-field="reportedTo" data-id="' + t.id + '" value="' +
             escapeHtml(t.reportedTo || '') + '">' +
@@ -1777,6 +1780,7 @@
       leakage: state.testType === MICROWAVE ? String(state.leakage) : '',
       failReason: '',
       actionTaken: '',
+      actionOther: '',
       reportedTo: '',
       photoIds: [],
       passedItems: state.passedItems.slice(),
@@ -1847,7 +1851,7 @@
         failed.length ? 'Fail' : 'Pass'
       ].concat(perItem).concat([
         failed.length ? failed.join('; ') : '',
-        t.failReason || '', t.actionTaken || '', t.reportedTo || '',
+        t.failReason || '', actionText(t), t.reportedTo || '',
         (t.photoIds || []).length,
         t.notes
       ]);
@@ -2254,7 +2258,7 @@
             ['LEAKAGE READING', (t.testType === MICROWAVE && t.leakage !== '')
               ? t.leakage + ' mW/cm\u00b2 (limit 5)' : ''],
             ['REASON FOR FAILURE', t.failReason],
-            ['ACTION TAKEN', t.actionTaken],
+            ['ACTION TAKEN', actionText(t)],
             ['REPORTED TO', t.reportedTo],
             ['NOTES', t.notes]
           ].filter(function (d) { return (d[1] || '').trim(); })
@@ -2390,7 +2394,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v49';
+  var APP_VERSION = 'v51';
 
   function applyTheme() {
     var pref = state.theme || 'system';
@@ -2419,26 +2423,45 @@
   }
 
   function renderItemManage() {
-    var box = document.getElementById('itemManage');
-    if (!state.recentItems.length) {
-      box.innerHTML = '<span class="settingHint">Nothing remembered yet.</span>';
-      return;
-    }
-    box.innerHTML = state.recentItems.map(function (item) {
-      return '<span class="forgetChip">' + escapeHtml(item) +
-             '<button data-forget="' + escapeHtml(item) + '" ' +
-             'aria-label="Forget ' + escapeHtml(item) + '">&times;</button></span>';
-    }).join('');
+    var sel = document.getElementById('forgetSelect');
+    var groups = [
+      ['items', 'Appliance names', state.recentItems],
+      ['locations', 'Locations', state.recentLocations],
+      ['reasons', 'Fail reasons', state.recentReasons]
+    ];
+    var html = '';
+    var any = false;
+    groups.forEach(function (g) {
+      if (!g[2].length) return;
+      any = true;
+      html += '<optgroup label="' + g[1] + ' (' + g[2].length + ')">' +
+        g[2].map(function (v) {
+          return '<option value="' + escapeHtml(g[0] + '|' + v) + '">' +
+                 escapeHtml(v) + '</option>';
+        }).join('') + '</optgroup>';
+    });
+    sel.innerHTML = any ? html : '<option value="">Nothing remembered yet</option>';
+    sel.disabled = !any;
+    document.getElementById('forgetBtn').disabled = !any;
   }
 
-  function forgetItem(name) {
-    var key = name.toLowerCase();
-    state.recentItems = state.recentItems.filter(function (i) {
-      return i.toLowerCase() !== key;
-    });
-    delete state.itemTypes[key];
-    delete state.itemPorts[key];
-    renderChips();
+  function forgetEntry(kind, value) {
+    var key = value.toLowerCase();
+    var drop = function (list) {
+      return list.filter(function (i) { return i.toLowerCase() !== key; });
+    };
+    if (kind === 'items') {
+      state.recentItems = drop(state.recentItems);
+      delete state.itemTypes[key];
+      delete state.itemPorts[key];
+      renderChips();
+    } else if (kind === 'locations') {
+      state.recentLocations = drop(state.recentLocations);
+      renderLocChips();
+    } else if (kind === 'reasons') {
+      state.recentReasons = drop(state.recentReasons);
+      renderFollowUp();
+    }
     renderItemManage();
     renderSettings();
     save();
@@ -2452,14 +2475,14 @@
 
     node.textContent = count + (count === 1 ? ' photo' : ' photos') + ' stored. ' +
       'Records ' + (recSize / 1024).toFixed(0) + ' KB. ' +
-      state.recentItems.length + ' remembered item names.';
+      state.recentItems.length + ' remembered names.';
 
     storageEstimate().then(function (est) {
       if (!est || !est.quota) return;
       node.textContent = count + (count === 1 ? ' photo' : ' photos') + ' stored, using ' +
         (est.usage / 1048576).toFixed(1) + ' MB of ' +
         (est.quota / 1048576).toFixed(0) + ' MB available. ' +
-        state.recentItems.length + ' remembered item names.';
+        state.recentItems.length + ' remembered names.';
     });
 
     var bits = [COMPANY.name, 'ABN ' + COMPANY.abn];
@@ -2567,7 +2590,11 @@
         passedItems: INSPECTION_ITEMS.filter(function (i) { return failed.indexOf(i) === -1; }),
         failedItems: failed,
         failReason: get(r, 'Fail Reason'),
-        actionTaken: get(r, 'Action Taken'),
+        actionTaken: (ACTIONS.indexOf(get(r, 'Action Taken')) !== -1)
+          ? get(r, 'Action Taken')
+          : (get(r, 'Action Taken') ? 'Other' : ''),
+        actionOther: (ACTIONS.indexOf(get(r, 'Action Taken')) === -1)
+          ? get(r, 'Action Taken') : '',
         reportedTo: get(r, 'Reported To'),
         photoIds: [],
         notes: get(r, 'Notes')
@@ -2577,6 +2604,14 @@
         state.recentItems.unshift(name);
       }
       state.itemTypes[name.toLowerCase()] = get(r, 'Test Type') || 'Class 1';
+      if (get(r, 'Test Type') === MULTI && get(r, 'Outlets')) {
+        state.itemPorts[name.toLowerCase()] = Number(get(r, 'Outlets'));
+      }
+      // rebuild the location and fail-reason memories too, or a restore
+      // leaves those lists empty even though the data is right there
+      state.recentLocations = remember(state.recentLocations, get(r, 'Location'));
+      var rsn = get(r, 'Fail Reason');
+      if (rsn) state.recentReasons = remember(state.recentReasons, rsn);
       added++;
     });
 
@@ -2595,7 +2630,7 @@
       return { added: 0, skipped: 0 };
     }
 
-    renderChips(); renderList(); renderFollowUp(); renderSettings();
+    renderChips(); renderLocChips(); renderList(); renderFollowUp(); renderSettings();
     if (!quiet) {
       alert('Imported ' + added + (added === 1 ? ' record' : ' records') +
             (skipped ? ', skipped ' + skipped + ' already present.' : '.'));
@@ -2648,7 +2683,7 @@
         save();
         return refreshPhotoUrls();
       }).then(function () {
-        renderChips(); renderList(); renderFollowUp(); renderSettings();
+        renderChips(); renderLocChips(); renderList(); renderFollowUp(); renderSettings();
         var bits = ['Imported ' + res.added + (res.added === 1 ? ' record' : ' records')];
         if (res.skipped) bits.push(res.skipped + ' already present');
         bits.push(attached + (attached === 1 ? ' photo' : ' photos') + ' attached');
@@ -2880,9 +2915,24 @@
   });
 
   // commit the reason to the remembered list when the field is left
+  function refreshBadge(t) {
+    var item = el.followContainer.querySelector('[data-id="' + t.id + '"]');
+    if (!item) return;
+    var badge = item.querySelector('.followDone, .followTodo');
+    if (!badge) return;
+    var done = t.failReason && t.actionTaken &&
+               (t.actionTaken !== 'Other' || (t.actionOther || '').trim());
+    badge.className = done ? 'followDone' : 'followTodo';
+    badge.textContent = done ? 'Recorded' : 'Needs detail';
+  }
+
   el.followContainer.addEventListener('focusout', function (e) {
     if (!e.target.getAttribute) return;
-    if (e.target.getAttribute('data-field') !== 'failReason') return;
+    var f = e.target.getAttribute('data-field');
+    if (f !== 'failReason' && f !== 'actionOther') return;
+    var t = findTest(e.target.getAttribute('data-id'));
+    if (t) refreshBadge(t);
+    if (f !== 'failReason') return;
     var v = (e.target.value || '').trim();
     if (!v) return;
     state.recentReasons = remember(state.recentReasons, v);
@@ -2895,6 +2945,8 @@
     var t = findTest(e.target.getAttribute('data-id'));
     if (!t) return;
     t.actionTaken = e.target.value;
+    if (t.actionTaken !== 'Other') t.actionOther = '';
+    refreshBadge(t);
     save();
     var body = document.getElementById('fb-' + t.id);
     renderFollowUp();
@@ -2950,9 +3002,12 @@
     renderFollowUp();
   });
 
-  document.getElementById('itemManage').addEventListener('click', function (e) {
-    var b = e.target.closest('[data-forget]');
-    if (b) forgetItem(b.getAttribute('data-forget'));
+  document.getElementById('forgetBtn').addEventListener('click', function () {
+    var v = document.getElementById('forgetSelect').value;
+    if (!v) return;
+    var at = v.indexOf('|');
+    if (at < 0) return;
+    forgetEntry(v.slice(0, at), v.slice(at + 1));
   });
 
   document.getElementById('clearItemsBtn').addEventListener('click', function () {
