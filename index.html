@@ -248,6 +248,9 @@
     white-space: nowrap; padding-bottom: 0.5mm;
   }
   .rpt-band .contact b { color: #0a0a0a; font-weight: 700; font-size: 8pt; }
+  .rpt-band .contact .coname {
+    color: #0a0a0a; font-weight: 700; font-size: 9pt; letter-spacing: 0.01em;
+  }
   .rpt-accent {
     height: 1.1mm; margin: 0 0 7mm;
     background: linear-gradient(to right, #D2030F 0 62%, #003986 62% 100%);
@@ -1902,6 +1905,9 @@
   function contactBlock() {
     var c = COMPANY;
     var lines = [];
+    // the logo carries the name as artwork; repeat it as text so the document
+    // is still identifiable in a text search or if the image fails to load
+    if (c.name) lines.push('<span class="coname">' + esc(c.name) + '</span>');
     if (c.phone) lines.push('<b>' + esc(c.phone) + '</b>');
     if (c.web) lines.push(esc(c.web));
     if (c.address) lines.push(esc(c.address));
@@ -2206,7 +2212,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v43';
+  var APP_VERSION = 'v44';
 
   function applyTheme() {
     var pref = state.theme || 'system';
