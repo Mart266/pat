@@ -692,11 +692,12 @@
     </div>
 
     <div class="settingRow">
-      <div class="settingLabel">Restore from CSV</div>
-      <div class="settingHint">Loads records from a previously exported CSV. Existing entries
-        are skipped, so importing the same file twice is safe. Photos are not in the CSV.</div>
+      <div class="settingLabel">Restore an export</div>
+      <div class="settingHint">Choose a previously exported <b>zip</b> to restore records and
+        photographs together, or a <b>CSV</b> for records only. Anything already held is
+        skipped, so importing the same file twice is safe.</div>
       <div class="dataBtns">
-        <button id="importBtn">Choose CSV file</button>
+        <button id="importBtn">Choose file</button>
       </div>
     </div>
 
@@ -1884,6 +1885,73 @@
     save();
   }
 
+  // ================= zip reading =================
+  // Counterpart to the writer above, so an exported zip can be restored whole:
+  // records from the CSV, photographs matched back by their asset-ID filenames.
+
+  function dv(buf) { return new DataView(buf); }
+
+  function findEOCD(buf) {
+    var v = dv(buf);
+    var max = Math.min(buf.byteLength, 66000);
+    for (var i = buf.byteLength - 22; i >= buf.byteLength - max && i >= 0; i--) {
+      if (v.getUint32(i, true) === 0x06054b50) return i;
+    }
+    return -1;
+  }
+
+  function inflateRaw(bytes) {
+    if (typeof DecompressionStream === 'undefined') {
+      return Promise.reject(new Error('compressed entry not supported'));
+    }
+    var ds = new DecompressionStream('deflate-raw');
+    var writer = ds.writable.getWriter();
+    writer.write(bytes);
+    writer.close();
+    return new Response(ds.readable).arrayBuffer().then(function (b) {
+      return new Uint8Array(b);
+    });
+  }
+
+  // -> Promise of [{ name, bytes }]
+  function readZip(buf) {
+    var v = dv(buf);
+    var eocd = findEOCD(buf);
+    if (eocd < 0) return Promise.reject(new Error('not a zip file'));
+
+    var count = v.getUint16(eocd + 10, true);
+    var cdOffset = v.getUint32(eocd + 16, true);
+    var entries = [];
+    var ptr = cdOffset;
+
+    for (var i = 0; i < count; i++) {
+      if (v.getUint32(ptr, true) !== 0x02014b50) break;
+      var method = v.getUint16(ptr + 10, true);
+      var compSize = v.getUint32(ptr + 20, true);
+      var nameLen = v.getUint16(ptr + 28, true);
+      var extraLen = v.getUint16(ptr + 30, true);
+      var commentLen = v.getUint16(ptr + 32, true);
+      var localOffset = v.getUint32(ptr + 42, true);
+      var name = new TextDecoder().decode(new Uint8Array(buf, ptr + 46, nameLen));
+
+      // data begins after the local header, whose own name/extra lengths may differ
+      var lNameLen = v.getUint16(localOffset + 26, true);
+      var lExtraLen = v.getUint16(localOffset + 28, true);
+      var dataStart = localOffset + 30 + lNameLen + lExtraLen;
+      var raw = new Uint8Array(buf, dataStart, compSize);
+
+      entries.push({ name: name, method: method, raw: raw });
+      ptr += 46 + nameLen + extraLen + commentLen;
+    }
+
+    return Promise.all(entries.map(function (e) {
+      if (e.method === 0) return { name: e.name, bytes: e.raw };
+      return inflateRaw(e.raw).then(function (out) {
+        return { name: e.name, bytes: out };
+      });
+    }));
+  }
+
   // ================= reports =================
   // Renders print-ready HTML into #printRoot, then hands off to the browser's
   // print dialog. On iOS that means Share > Print > Save to Files as PDF.
@@ -2270,7 +2338,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v46';
+  var APP_VERSION = 'v47';
 
   function applyTheme() {
     var pref = state.theme || 'system';
@@ -2373,9 +2441,12 @@
     return rows.filter(function (r) { return r.some(function (v) { return v !== ''; }); });
   }
 
-  function importCSV(text) {
+  function importCSV(text, quiet) {
     var rows = parseCSV(text);
-    if (rows.length < 2) { alert('That file has no records in it.'); return; }
+    if (rows.length < 2) {
+      if (!quiet) alert('That file has no records in it.');
+      return { added: 0, skipped: 0 };
+    }
 
     var head = rows[0].map(function (h) { return h.trim(); });
     var col = {};
@@ -2383,7 +2454,7 @@
 
     if (col['Asset ID'] === undefined || col['Description'] === undefined) {
       alert('That does not look like a logger export. Expected Asset ID and Description columns.');
-      return;
+      return { added: 0, skipped: 0 };
     }
 
     var existing = {};
@@ -2463,12 +2534,75 @@
       save();
     } catch (e) {
       alert('Import too large for storage. Clear photos or logged tests first.');
-      return;
+      return { added: 0, skipped: 0 };
     }
 
     renderChips(); renderList(); renderFollowUp(); renderSettings();
-    alert('Imported ' + added + (added === 1 ? ' record' : ' records') +
-          (skipped ? ', skipped ' + skipped + ' already present.' : '.'));
+    if (!quiet) {
+      alert('Imported ' + added + (added === 1 ? ' record' : ' records') +
+            (skipped ? ', skipped ' + skipped + ' already present.' : '.'));
+    }
+    return { added: added, skipped: skipped };
+  }
+
+  // Restore a whole export: the CSV plus any photographs, matched back to
+  // records by the asset ID in each photo's filename.
+  function importZip(buf) {
+    readZip(buf).then(function (files) {
+      var csv = files.filter(function (f) { return /\.csv$/i.test(f.name); })[0];
+      var pics = files.filter(function (f) { return /\.(jpe?g|png)$/i.test(f.name); });
+
+      if (!csv) { alert('No CSV found inside that zip.'); return; }
+
+      var res = importCSV(new TextDecoder().decode(csv.bytes), true);
+
+      // index records by asset ID for matching
+      var byTag = {};
+      state.tests.forEach(function (t) {
+        if (t.tagNumber) byTag[safeName(t.tagNumber).toLowerCase()] = t;
+      });
+
+      var attached = 0, unmatched = 0, dup = 0;
+      var jobs = [];
+
+      pics.forEach(function (f) {
+        var base = f.name.split('/').pop().replace(/\.(jpe?g|png)$/i, '');
+        var m = base.match(/^(.*)-(\d+)$/);
+        var tagPart = (m ? m[1] : base).toLowerCase();
+        var idx = m ? m[2] : '1';
+        var t = byTag[tagPart];
+        if (!t) { unmatched++; return; }
+
+        var pid = 'imp-' + tagPart + '-' + idx;
+        t.photoIds = t.photoIds || [];
+        if (t.photoIds.indexOf(pid) !== -1) { dup++; return; }
+        if (t.photoIds.length >= MAX_PHOTOS) { return; }
+
+        var type = /\.png$/i.test(f.name) ? 'image/png' : 'image/jpeg';
+        var blob = new Blob([f.bytes], { type: type });
+        jobs.push(photoPut(pid, blob).then(function () {
+          t.photoIds.push(pid);
+          attached++;
+        }).catch(function () {}));
+      });
+
+      Promise.all(jobs).then(function () {
+        save();
+        return refreshPhotoUrls();
+      }).then(function () {
+        renderChips(); renderList(); renderFollowUp(); renderSettings();
+        var bits = ['Imported ' + res.added + (res.added === 1 ? ' record' : ' records')];
+        if (res.skipped) bits.push(res.skipped + ' already present');
+        bits.push(attached + (attached === 1 ? ' photo' : ' photos') + ' attached');
+        if (dup) bits.push(dup + ' photos already there');
+        if (unmatched) bits.push(unmatched + ' photos had no matching asset ID');
+        alert(bits.join('.\n') + '.');
+      });
+    }).catch(function (e) {
+      console.error(e);
+      alert('Could not read that zip. If it was compressed by another program, '
+          + 'export the CSV and photos separately instead.');
+    });
   }
 
   // --- events ---
@@ -2693,16 +2827,25 @@
   });
 
   document.getElementById('importBtn').addEventListener('click', function () {
+    var holder = document.getElementById('fileHolder');
+    holder.innerHTML = '';
     var input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.csv,text/csv,text/plain';
+    input.accept = '.zip,.csv,application/zip,text/csv,text/plain';
+    holder.appendChild(input);
     input.addEventListener('change', function () {
       var f = this.files && this.files[0];
       if (!f) return;
+      var isZip = /\.zip$/i.test(f.name) || f.type === 'application/zip';
       var r = new FileReader();
-      r.onload = function () { importCSV(String(r.result)); };
       r.onerror = function () { alert('Could not read that file.'); };
-      r.readAsText(f);
+      if (isZip) {
+        r.onload = function () { importZip(r.result); };
+        r.readAsArrayBuffer(f);
+      } else {
+        r.onload = function () { importCSV(String(r.result)); };
+        r.readAsText(f);
+      }
     });
     input.click();
   });

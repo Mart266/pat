@@ -45,7 +45,8 @@ Buttons lock briefly to stop double taps.
 - Any logged test can be edited afterwards, including its result
 
 **Failed items** — each failure appears in a follow-up list until a reason and action are
-recorded. Up to four photos per item, taken on the phone.
+recorded. Up to eight photos per item, taken on the phone. Photos are stored as blobs in
+IndexedDB, not in localStorage, so the practical limit is hundreds rather than about twenty.
 
 **Reports** — Certificate of Conformance, Concise Test Report and Fail Report render as
 print-ready pages. Choose Print, then save as PDF from the iOS share sheet.
@@ -53,16 +54,26 @@ print-ready pages. Choose Print, then save as PDF from the iOS share sheet.
 **Export ZIP** — one file containing the CSV register and every photo, named by asset ID.
 CSV alone is also available.
 
-**Settings** — appearance (system, light or dark), restore from a previously exported CSV,
-storage usage with options to clear photos or remembered item names, and an about line.
+**Settings** — appearance (system, light or dark), restore an export, remembered item names
+with per-item removal, storage usage with options to clear photos, and an about line.
 
-Importing a CSV skips records already held, so importing the same file twice is safe.
-Photos are not carried in a CSV, so a restore rebuilds records without their photographs.
+**Restoring** accepts either file. A **zip** rebuilds records and photographs together, matching
+photos to records by the asset ID in each filename. A **CSV** restores records only. Anything
+already held is skipped, so importing the same file twice changes nothing.
+
+This is also how to move data between two installs — export from one, restore into the other.
+iOS gives each home screen icon its own storage, so a second icon starts empty.
 
 ## Storage
 
-Data is held in the browser on that one device. Clearing Safari's website data erases it,
-and iOS can evict storage for sites left unopened for long periods.
+Two stores, both on the device:
+
+- **localStorage** holds the test records, job setup and settings. Small and fast.
+- **IndexedDB** (`ttm-photos`) holds the photographs as JPEG blobs.
+
+Clearing Safari's website data erases both, and iOS can evict storage for sites left
+unopened for long periods. Photos captured on an older version are migrated into
+IndexedDB automatically the first time this version runs.
 
 **Export the zip at the end of every job.** That file is the record; the phone is only
 where you type.
