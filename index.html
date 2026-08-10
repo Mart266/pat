@@ -46,6 +46,18 @@
 
   h1.title { margin: 0 0 12px 0; font-size: 19px; font-weight: 700; color: #18181b; }
 
+  .currentTagCard {
+    position: sticky; top: 8px; z-index: 8; width: 100%; box-sizing: border-box;
+    margin: 0 0 12px; padding: 10px 14px; border: 2px solid #18181b; border-radius: 8px;
+    background: #fff; color: #18181b; font-family: inherit; cursor: pointer; text-align: left;
+    display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center;
+    box-shadow: 0 4px 16px rgba(0,0,0,.08);
+  }
+  .currentTagCard .ctLabel { font-size: 10px; font-weight: 800; letter-spacing: .7px; text-transform: uppercase; color: #71717a; }
+  .currentTagCard strong { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 24px; line-height: 1; text-align: center; letter-spacing: .02em; }
+  .currentTagCard .ctHint { font-size: 10px; color: #71717a; white-space: nowrap; }
+  .currentTagCard.empty strong { color: #a1a1aa; }
+
   .stats { display: flex; gap: 8px; }
   .stat { flex: 1; text-align: center; padding: 8px; background-color: #1c1c1f; border-radius: 6px; }
   .statNumber { display: block; font-size: 22px; font-weight: 700; color: #fff; }
@@ -196,6 +208,13 @@
     cursor: pointer; font-family: inherit;
   }
   .listActions { display: flex; gap: 6px; align-items: center; }
+  .listTools { padding: 10px 12px; border-bottom: 1px solid #e4e4e7; background: #fafafa; }
+  .listToolsTop { display: grid; grid-template-columns: 1fr 118px; gap: 8px; }
+  .listTools .field { margin-bottom: 8px; }
+  .filterRow { display: flex; gap: 6px; align-items: center; }
+  .filterRow button { flex: 1; padding: 7px 8px; border: 1px solid #d4d4d8; background: #fff; border-radius: 5px; color: #52525b; font: 600 11px inherit; cursor: pointer; }
+  .filterRow button.active { background: #18181b; color: #fff; border-color: #18181b; }
+  .listResultCount { font-size: 10px; color: #71717a; margin-left: 4px; white-space: nowrap; }
   .testsContainer { max-height: 420px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
 
   .testItem { padding: 12px 16px; border-left: 4px solid; border-bottom: 1px solid #f4f4f5; }
@@ -225,6 +244,12 @@
     display: inline-flex; align-items: center; gap: 4px; font-family: inherit;
   }
   svg { flex-shrink: 0; }
+  html[data-theme="dark"] .currentTagCard { background:#111113; color:#fff; border-color:#f4f4f5; box-shadow:0 4px 16px rgba(0,0,0,.35); }
+  html[data-theme="dark"] .currentTagCard .ctLabel, html[data-theme="dark"] .currentTagCard .ctHint { color:#a1a1aa; }
+  html[data-theme="dark"] .listTools { background:#111113; border-color:#27272a; }
+  html[data-theme="dark"] .filterRow button { background:#1c1c1f; border-color:#3f3f46; color:#d4d4d8; }
+  html[data-theme="dark"] .filterRow button.active { background:#f4f4f5; border-color:#f4f4f5; color:#18181b; }
+
   /* --- report output --- */
   #printRoot { display: none; }
   .rpt-bar {
@@ -357,6 +382,7 @@
   .rpt-photo { width: 44mm; border: 0.4pt solid #dcdce0; }
   .rpt-photolab { padding: 0 4mm; }
 
+  .rpt-signature-img { display:block; max-width:150px; max-height:52px; object-fit:contain; margin-top:4px; }
   .rpt-sig { width: 100%; border-collapse: collapse; margin-top: 10mm; }
   .rpt-sig td {
     border-bottom: 0.6pt solid #0a0a0a; height: 15mm; vertical-align: top;
@@ -564,6 +590,12 @@
     <button class="toggleButton" id="newJobBtn">Start new job</button>
   </div>
 
+  <button class="currentTagCard empty" id="currentTagCard" type="button" aria-label="Edit current tag number">
+    <span class="ctLabel">Current tag</span>
+    <strong id="currentTagDisplay">—</strong>
+    <span class="ctHint">tap to edit</span>
+  </button>
+
   <div class="form" id="form">
     <label class="label" for="appliance">Appliance</label>
     <div class="fieldWrap">
@@ -687,6 +719,24 @@
       <button class="clearButton" id="clearBtn">Clear</button>
       </div>
     </div>
+    <div class="listTools">
+      <div class="listToolsTop">
+        <input class="field" id="testSearch" type="search" placeholder="Search tag, appliance, location…" autocomplete="off">
+        <select class="field" id="testSort" aria-label="Sort logged tests">
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+          <option value="tagAsc">Tag A–Z</option>
+          <option value="tagDesc">Tag Z–A</option>
+          <option value="location">Location</option>
+        </select>
+      </div>
+      <div class="filterRow" id="testFilter">
+        <button class="active" data-filter="all">All</button>
+        <button data-filter="pass">Pass</button>
+        <button data-filter="fail">Fail</button>
+        <span class="listResultCount" id="listResultCount"></span>
+      </div>
+    </div>
     <div class="testsContainer" id="testsContainer"></div>
   </div>
 
@@ -723,6 +773,16 @@
       <div class="dataBtns">
         <button id="forgetBtn">Delete selected</button>
       </div>
+    </div>
+
+    <div class="settingRow">
+      <div class="settingLabel">Report signature</div>
+      <div class="settingHint">Choose a transparent PNG of your signature. It will be stamped into the signed field on generated reports.</div>
+      <div class="dataBtns">
+        <button id="signatureBtn">Choose PNG</button>
+        <button id="signatureClearBtn">Clear signature</button>
+      </div>
+      <div class="settingHint" id="signatureStatus">No signature stored.</div>
     </div>
 
     <div class="settingRow">
@@ -782,7 +842,9 @@
     recentReasons: [],
     theme: 'system',
     instrument: 'Aegis Patrol Pro CZ5001',
-    calibration: 'Aug 2026, cert CR-INT-20260810-001'
+    calibration: 'Aug 2026, cert CR-INT-20260810-001',
+    signatureDataUrl: '',
+    signatureName: ''
   };
 
   var COMPANY = {
@@ -802,6 +864,7 @@
   var ACTIONS = [
     '',
     'Tagged out of service',
+    'Fail tagged and left with site contact',
     'Removed from site',
     'Sent for repair',
     'Repaired and retested',
@@ -861,7 +924,13 @@
     portWrap: document.getElementById('portWrap'),
     mwWrap: document.getElementById('mwWrap'),
     leakage: document.getElementById('leakage'),
-    leakageNote: document.getElementById('leakageNote')
+    leakageNote: document.getElementById('leakageNote'),
+    currentTagCard: document.getElementById('currentTagCard'),
+    currentTagDisplay: document.getElementById('currentTagDisplay'),
+    testSearch: document.getElementById('testSearch'),
+    testSort: document.getElementById('testSort'),
+    testFilter: document.getElementById('testFilter'),
+    listResultCount: document.getElementById('listResultCount')
   };
 
   // Increments the last run of digits in a tag, preserving any prefix and zero-padding.
@@ -930,6 +999,8 @@
       state.client = data.client || '';
       state.jobRef = data.jobRef || '';
       if (data.theme) state.theme = data.theme;
+      state.signatureDataUrl = data.signatureDataUrl || '';
+      state.signatureName = data.signatureName || '';
       if (data.instrument) {
         // fold the old verbose default forward, but keep anything hand-edited
         state.instrument = (data.instrument === 'Aegis Patrol Pro CZ5001 portable appliance tester') ? 'Aegis Patrol Pro CZ5001' : data.instrument;
@@ -1495,9 +1566,28 @@
 
     el.testsList.style.display = total ? '' : 'none';
     el.reportsCard.style.display = total ? '' : 'none';
-    if (!total) { el.testsContainer.innerHTML = ''; return; }
+    if (!total) { el.testsContainer.innerHTML = ''; if (el.listResultCount) el.listResultCount.textContent = ''; return; }
 
-    el.testsContainer.innerHTML = state.tests.map(function (t) {
+    var shownTests = state.tests.filter(function (t) {
+      if (listFilter !== 'all' && t.result !== listFilter) return false;
+      if (!listSearch) return true;
+      var hay = [t.tagNumber, t.appliance, t.location, t.site, t.client, t.jobRef, t.make, t.model, t.serial]
+        .join(' ').toLowerCase();
+      return hay.indexOf(listSearch) !== -1;
+    }).slice();
+
+    shownTests.sort(function (a, b) {
+      if (listSort === 'oldest') return (a.id || 0) - (b.id || 0);
+      if (listSort === 'tagAsc') return String(a.tagNumber || '').localeCompare(String(b.tagNumber || ''), undefined, { numeric:true });
+      if (listSort === 'tagDesc') return String(b.tagNumber || '').localeCompare(String(a.tagNumber || ''), undefined, { numeric:true });
+      if (listSort === 'location') return String(a.location || '').localeCompare(String(b.location || '')) || String(a.tagNumber || '').localeCompare(String(b.tagNumber || ''), undefined, { numeric:true });
+      return (b.id || 0) - (a.id || 0);
+    });
+
+    if (el.listResultCount) el.listResultCount.textContent = shownTests.length + '/' + total;
+    if (!shownTests.length) { el.testsContainer.innerHTML = '<div class="storageNote">No logged tests match this search/filter.</div>'; return; }
+
+    el.testsContainer.innerHTML = shownTests.map(function (t) {
       if (t.id === editingId) return editRowHTML(t);
       var place = [t.site, t.location].filter(Boolean).join(' \u00b7 ');
       return '' +
@@ -1644,11 +1734,37 @@
     save();
   }
 
+  function renderCurrentTag() {
+    var v = (state.tagNumber || '').trim();
+    if (el.currentTagDisplay) el.currentTagDisplay.textContent = v || '—';
+    if (el.currentTagCard) el.currentTagCard.classList.toggle('empty', !v);
+  }
+
+  function restoreContinuityFromLatest() {
+    if (!state.tests.length) return;
+    var t = state.tests[0];
+    state.client = t.client || '';
+    state.site = t.site || '';
+    state.jobRef = t.jobRef || '';
+    state.technician = t.technician || state.technician;
+    state.location = t.location || '';
+    if (t.instrument) state.instrument = t.instrument;
+    if (t.calibration) state.calibration = t.calibration;
+    state.tagNumber = t.tagNumber ? incrementTag(t.tagNumber) : '';
+    syncInputs();
+    renderCurrentTag();
+  }
+
+  var listSearch = '';
+  var listFilter = 'all';
+  var listSort = 'newest';
+
   function syncInputs() {
     el.appliance.value = state.appliance;
     el.site.value = state.site;
     el.location.value = state.location;
     el.tagNumber.value = state.tagNumber;
+    renderCurrentTag();
     el.notes.value = state.notes;
     el.technician.value = state.technician;
     el.client.value = state.client;
@@ -1763,6 +1879,8 @@
       id: Date.now(),
       appliance: name,
       technician: state.technician.trim(),
+      instrument: state.instrument.trim(),
+      calibration: state.calibration.trim(),
       client: state.client.trim(),
       jobRef: state.jobRef.trim(),
       retestMonths: months,
@@ -1781,7 +1899,7 @@
       failReason: '',
       actionTaken: '',
       actionOther: '',
-      reportedTo: '',
+      reportedTo: result === 'fail' ? 'Site contact' : '',
       photoIds: [],
       passedItems: state.passedItems.slice(),
       failedItems: failedFrom(state.passedItems),
@@ -1807,6 +1925,7 @@
     ).slice(0, MAX_REMEMBERED);
 
     if (state.tagNumber.trim()) state.tagNumber = incrementTag(state.tagNumber.trim());
+    renderCurrentTag();
     state.notes = '';
     state.passedItems = allPassed();
     state.serial = '';
@@ -1827,7 +1946,7 @@
 
   function buildCSV() {
     var headers = ['Asset ID', 'Description', 'Client', 'Site', 'Location', 'Job Reference',
-                   'Technician', 'Test Type', 'Result', 'Test Date', 'Test Date ISO', 'Time',
+                   'Technician', 'Test Instrument', 'Instrument Calibration', 'Test Type', 'Result', 'Test Date', 'Test Date ISO', 'Time',
                    'Test Period', 'Next Test Date', 'Next Test Date ISO',
                    'Make', 'Model', 'Serial Number', 'Polarity',
                    'Outlets', 'Failed Outlets', 'Leakage mW/cm2', 'Visual Result']
@@ -1842,7 +1961,7 @@
       });
       return [
         t.tagNumber, t.appliance, t.client || '', t.site || '', t.location || '',
-        t.jobRef || '', t.technician || '', t.testType || '', t.result.toUpperCase(),
+        t.jobRef || '', t.technician || '', t.instrument || '', t.calibration || '', t.testType || '', t.result.toUpperCase(),
         t.date, t.dateIso || '', t.time,
         t.retestMonths ? t.retestMonths + ' months' : '',
         t.nextTestDisplay || '', t.nextTestIso || '',
@@ -2129,6 +2248,19 @@
       '. Tests performed to the requirements of ' + STANDARD_LONG + '.</p>';
   }
 
+  function signatureMarkup() {
+    if (!state.signatureDataUrl) return '&mdash;';
+    return '<img class="rpt-signature-img" src="' + state.signatureDataUrl + '" alt="Signature">';
+  }
+
+  function reportSignoff(ctx) {
+    return '<table class="rpt-sig"><tr>' +
+      '<td><span>TESTED BY</span>' + (esc(ctx.techs.join(', ')) || '&mdash;') + '</td>' +
+      '<td><span>DATE OF ISSUE</span>' + longDate(isoDate(new Date())) + '</td>' +
+      '<td><span>SIGNED</span>' + signatureMarkup() + '</td>' +
+    '</tr></table>';
+  }
+
   function certificateHTML(ctx) {
     var tot = totals();
     var total = tot.units;
@@ -2181,7 +2313,7 @@
       '<table class="rpt-sig"><tr>' +
         '<td><span>TESTED BY</span>' + (esc(ctx.techs.join(', ')) || '&mdash;') + '</td>' +
         '<td><span>DATE OF ISSUE</span>' + longDate(isoDate(new Date())) + '</td>' +
-        '<td><span>SIGNED</span></td>' +
+        '<td><span>SIGNED</span>' + signatureMarkup() + '</td>' +
       '</tr></table>' +
       instrumentNote() +
     '</section>';
@@ -2230,7 +2362,7 @@
     }).join('');
 
     return '<section class="rpt-page">' + docHead('Concise Test Report', ctx) +
-      body + instrumentNote() + '</section>';
+      body + reportSignoff(ctx) + instrumentNote() + '</section>';
   }
 
   function failHTML(ctx) {
@@ -2296,7 +2428,7 @@
       '<p>' + failures.length + ' item' + (failures.length === 1 ? '' : 's') +
       ' failed inspection or testing and ' +
       (failures.length === 1 ? 'has' : 'have') + ' been removed from service.</p>' +
-      body + instrumentNote() + '</section>';
+      body + reportSignoff(ctx) + instrumentNote() + '</section>';
   }
 
   function printHTML(html) {
@@ -2394,7 +2526,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v51';
+  var APP_VERSION = 'v52';
 
   function applyTheme() {
     var pref = state.theme || 'system';
@@ -2489,6 +2621,10 @@
     bits.push('app ' + APP_VERSION);
     bits.push(state.tests.length + ' records held on this device');
     document.getElementById('aboutText').textContent = bits.join(' \u00b7 ');
+    var sigStatus = document.getElementById('signatureStatus');
+    if (sigStatus) sigStatus.textContent = state.signatureDataUrl
+      ? 'Signature stored' + (state.signatureName ? ': ' + state.signatureName : '.')
+      : 'No signature stored.';
     renderItemManage();
   }
 
@@ -2574,6 +2710,8 @@
         location: get(r, 'Location'),
         jobRef: get(r, 'Job Reference'),
         technician: get(r, 'Technician'),
+        instrument: get(r, 'Test Instrument'),
+        calibration: get(r, 'Instrument Calibration'),
         testType: get(r, 'Test Type') || 'Class 1',
         result: get(r, 'Result').toUpperCase() === 'FAIL' ? 'fail' : 'pass',
         tagNumber: tag,
@@ -2622,6 +2760,8 @@
       return String(b.dateIso || '').localeCompare(String(a.dateIso || '')) ||
              (b.id - a.id);
     });
+
+    if (added > 0) restoreContinuityFromLatest();
 
     try {
       save();
@@ -2985,6 +3125,40 @@
     input.click();
   });
 
+  document.getElementById('signatureBtn').addEventListener('click', function () {
+    var holder = document.getElementById('fileHolder');
+    holder.innerHTML = '';
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/png,.png';
+    holder.appendChild(input);
+    input.addEventListener('change', function () {
+      var f = this.files && this.files[0];
+      if (!f) return;
+      if (!/\.png$/i.test(f.name) && f.type !== 'image/png') {
+        alert('Choose a PNG signature file.'); return;
+      }
+      if (f.size > 750000) {
+        alert('That signature PNG is unusually large. Use a cropped transparent PNG under 750 KB.'); return;
+      }
+      var r = new FileReader();
+      r.onload = function () {
+        state.signatureDataUrl = String(r.result || '');
+        state.signatureName = f.name;
+        save(); renderSettings();
+      };
+      r.onerror = function () { alert('Could not read that signature file.'); };
+      r.readAsDataURL(f);
+    });
+    input.click();
+  });
+
+  document.getElementById('signatureClearBtn').addEventListener('click', function () {
+    state.signatureDataUrl = '';
+    state.signatureName = '';
+    save(); renderSettings();
+  });
+
   document.getElementById('clearPhotosBtn').addEventListener('click', function () {
     var n = allPhotoIds().length;
     if (!n) { alert('There are no photos stored.'); return; }
@@ -3058,7 +3232,12 @@
     renderLocChips();
     save();
   });
-  el.tagNumber.addEventListener('input', function () { state.tagNumber = this.value; save(); });
+  el.tagNumber.addEventListener('input', function () { state.tagNumber = this.value; renderCurrentTag(); save(); });
+
+  el.currentTagCard.addEventListener('click', function () {
+    el.tagNumber.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(function () { el.tagNumber.focus(); el.tagNumber.select(); }, 220);
+  });
   el.notes.addEventListener('input', function () { state.notes = this.value; save(); });
 
   el.chipRow.addEventListener('click', function (e) {
@@ -3078,6 +3257,24 @@
     typeTouched = true;
     renderTypeSelector();
     save();
+  });
+
+  el.testSearch.addEventListener('input', function () {
+    listSearch = this.value.trim().toLowerCase();
+    renderList();
+  });
+  el.testSort.addEventListener('change', function () {
+    listSort = this.value;
+    renderList();
+  });
+  el.testFilter.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-filter]');
+    if (!b) return;
+    listFilter = b.getAttribute('data-filter');
+    el.testFilter.querySelectorAll('[data-filter]').forEach(function (x) {
+      x.classList.toggle('active', x === b);
+    });
+    renderList();
   });
 
   el.testsContainer.addEventListener('click', function (e) {
