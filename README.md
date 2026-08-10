@@ -3,7 +3,7 @@
 Offline-capable web app for logging portable appliance testing on site, producing
 client reports, and exporting the job as a zip.
 
-Test Tag Melbourne · ABN 36 246 545 097 · 13 Slough St, Deer Park VIC 3023 · 0408 130 066
+Test Tag Melbourne · ABN 36 246 545 097
 
 ## Files
 
