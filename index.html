@@ -1167,7 +1167,117 @@
   }
 
 
-  // --- photo capture: downscale hard, storage here is tight ---
+  // ================= photo store =================
+  // Photos live in IndexedDB as blobs rather than base64 in localStorage.
+  // That removes the 5 MB ceiling, avoids a 33% encoding penalty, and stops
+  // every keystroke re-serialising megabytes of image data.
+
+  var PHOTO_DB = 'ttm-photos';
+  var PHOTO_STORE = 'photos';
+  var MAX_PHOTOS = 8;
+  var dbPromise = null;
+  var photoUrls = {};        // photoId -> object URL, for display only
+
+  function idb() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise(function (resolve, reject) {
+      if (!window.indexedDB) { reject(new Error('IndexedDB unavailable')); return; }
+      var req = indexedDB.open(PHOTO_DB, 1);
+      req.onupgradeneeded = function () {
+        var db = req.result;
+        if (!db.objectStoreNames.contains(PHOTO_STORE)) db.createObjectStore(PHOTO_STORE);
+      };
+      req.onsuccess = function () { resolve(req.result); };
+      req.onerror = function () { reject(req.error); };
+    });
+    return dbPromise;
+  }
+
+  function idbRun(mode, fn) {
+    return idb().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var tx = db.transaction(PHOTO_STORE, mode);
+        var store = tx.objectStore(PHOTO_STORE);
+        var out = fn(store);
+        tx.oncomplete = function () { resolve(out && out.result !== undefined ? out.result : out); };
+        tx.onerror = function () { reject(tx.error); };
+        tx.onabort = function () { reject(tx.error); };
+      });
+    });
+  }
+
+  function photoPut(id, blob) { return idbRun('readwrite', function (s) { s.put(blob, id); }); }
+  function photoDelete(id) { return idbRun('readwrite', function (s) { s['delete'](id); }); }
+  function photoClear() { return idbRun('readwrite', function (s) { s.clear(); }); }
+  function photoGet(id) {
+    return idb().then(function (db) {
+      return new Promise(function (resolve, reject) {
+        var req = db.transaction(PHOTO_STORE, 'readonly').objectStore(PHOTO_STORE).get(id);
+        req.onsuccess = function () { resolve(req.result || null); };
+        req.onerror = function () { reject(req.error); };
+      });
+    });
+  }
+
+  function allPhotoIds() {
+    var ids = [];
+    state.tests.forEach(function (t) {
+      (t.photoIds || []).forEach(function (id) { ids.push(id); });
+    });
+    return ids;
+  }
+
+  // Build display URLs for anything not already cached, and drop stale ones.
+  function refreshPhotoUrls() {
+    var wanted = allPhotoIds();
+    Object.keys(photoUrls).forEach(function (id) {
+      if (wanted.indexOf(id) === -1) {
+        URL.revokeObjectURL(photoUrls[id]);
+        delete photoUrls[id];
+      }
+    });
+    var missing = wanted.filter(function (id) { return !photoUrls[id]; });
+    if (!missing.length) return Promise.resolve();
+    return Promise.all(missing.map(function (id) {
+      return photoGet(id).then(function (blob) {
+        if (blob) photoUrls[id] = URL.createObjectURL(blob);
+      }).catch(function () {});
+    }));
+  }
+
+  function newPhotoId(t) {
+    return 'p-' + t.id + '-' + Date.now() + '-' + Math.floor(Math.random() * 10000);
+  }
+
+  // Convert any legacy base64 photos across to the blob store, once.
+  function migratePhotos() {
+    var legacy = state.tests.filter(function (t) { return (t.photos || []).length; });
+    if (!legacy.length) return Promise.resolve(0);
+
+    var jobs = [];
+    legacy.forEach(function (t) {
+      t.photoIds = t.photoIds || [];
+      (t.photos || []).forEach(function (dataUrl) {
+        var id = newPhotoId(t);
+        var bytes = dataUrlBytes(dataUrl);
+        var blob = new Blob([bytes], { type: 'image/jpeg' });
+        t.photoIds.push(id);
+        jobs.push(photoPut(id, blob));
+      });
+      delete t.photos;
+    });
+
+    return Promise.all(jobs).then(function () {
+      save();
+      console.log('Migrated ' + jobs.length + ' photo(s) to IndexedDB');
+      return jobs.length;
+    }).catch(function (e) {
+      console.error('Photo migration failed', e);
+      return 0;
+    });
+  }
+
+  // --- photo capture ---
   function compressImage(file, cb) {
     var reader = new FileReader();
     reader.onload = function () {
@@ -1180,7 +1290,13 @@
         var c = document.createElement('canvas');
         c.width = w; c.height = h;
         c.getContext('2d').drawImage(img, 0, 0, w, h);
-        cb(c.toDataURL('image/jpeg', 0.55));
+        if (c.toBlob) {
+          c.toBlob(function (blob) { cb(blob); }, 'image/jpeg', 0.55);
+        } else {
+          // older WebKit: fall back through the data URL
+          cb(new Blob([dataUrlBytes(c.toDataURL('image/jpeg', 0.55))],
+                      { type: 'image/jpeg' }));
+        }
       };
       img.onerror = function () { cb(null); };
       img.src = reader.result;
@@ -1189,12 +1305,7 @@
     reader.readAsDataURL(file);
   }
 
-  function storageUsed() {
-    try {
-      var bytes = (localStorage.getItem(STORAGE_KEY) || '').length;
-      return (bytes / 1048576).toFixed(2);
-    } catch (e) { return '?'; }
-  }
+
 
   function renderFollowUp() {
     var failed = state.tests.filter(function (t) { return t.result === 'fail'; });
@@ -1203,7 +1314,7 @@
 
     el.followContainer.innerHTML = failed.map(function (t) {
       var done = t.failReason && t.actionTaken;
-      var photos = t.photos || [];
+      var photos = (t.photoIds || []).filter(function (id) { return photoUrls[id]; });
       return '<div class="followItem" data-id="' + t.id + '">' +
         '<div class="followHead">' +
           '<span class="followName">' + escapeHtml(t.appliance) +
@@ -1244,9 +1355,10 @@
             escapeHtml(t.reportedTo || '') + '">' +
           '<label class="label">Photos</label>' +
           '<div class="photoRow">' +
-            photos.map(function (src, i) {
-              return '<div class="photoThumb"><img src="' + src + '">' +
-                '<button class="photoDel" data-del="' + t.id + '" data-idx="' + i + '">&times;</button></div>';
+            photos.map(function (id) {
+              return '<div class="photoThumb"><img src="' + photoUrls[id] + '">' +
+                '<button class="photoDel" data-del="' + t.id + '" data-pid="' + id +
+                '">&times;</button></div>';
             }).join('') +
             '<button class="addPhoto" data-photo="' + t.id + '">+</button>' +
           '</div>' +
@@ -1254,7 +1366,16 @@
       '</div>';
     }).join('');
 
-    el.storageNote.textContent = storageUsed() + ' MB of roughly 5 MB used. Photos are the bulk of it \u2014 export the zip, then clear.';
+    var pc = allPhotoIds().length;
+    el.storageNote.textContent = pc
+      ? pc + (pc === 1 ? ' photo' : ' photos') + ' stored. Export the zip before clearing them.'
+      : 'No photos stored yet.';
+    storageEstimate().then(function (est) {
+      if (!est || !est.quota || !pc) return;
+      el.storageNote.textContent = pc + (pc === 1 ? ' photo' : ' photos') + ' stored, ' +
+        (est.usage / 1048576).toFixed(1) + ' MB of ' +
+        (est.quota / 1048576).toFixed(0) + ' MB used. Export the zip before clearing them.';
+    });
   }
 
   function renderList() {
@@ -1552,7 +1673,7 @@
       failReason: '',
       actionTaken: '',
       reportedTo: '',
-      photos: [],
+      photoIds: [],
       passedItems: state.passedItems.slice(),
       failedItems: failedFrom(state.passedItems),
       site: state.site.trim(),
@@ -1620,7 +1741,7 @@
       ].concat(perItem).concat([
         failed.length ? failed.join('; ') : '',
         t.failReason || '', t.actionTaken || '', t.reportedTo || '',
-        (t.photos && t.photos.length) ? t.photos.length : 0,
+        (t.photoIds || []).length,
         t.notes
       ]);
     });
@@ -1664,31 +1785,31 @@
 
     var base = 'PAT-' + safeName(state.jobRef || state.site || 'Tests') + '-' + stamp();
     var files = [{ name: base + '.csv', bytes: strBytes('\ufeff' + buildCSV()) }];
-    var photoCount = 0;
 
+    // gather the photo blobs first, then assemble
+    var jobs = [];
     state.tests.forEach(function (t) {
-      (t.photos || []).forEach(function (src, i) {
-        files.push({
-          name: 'photos/' + safeName(t.tagNumber || t.appliance) + '-' + (i + 1) + '.jpg',
-          bytes: dataUrlBytes(src)
-        });
-        photoCount++;
+      (t.photoIds || []).forEach(function (id, i) {
+        jobs.push(photoGet(id).then(function (blob) {
+          if (!blob) return null;
+          return blob.arrayBuffer().then(function (buf) {
+            return {
+              name: 'photos/' + safeName(t.tagNumber || t.appliance) + '-' + (i + 1) + '.jpg',
+              bytes: new Uint8Array(buf)
+            };
+          });
+        }).catch(function () { return null; }));
       });
     });
 
-    try {
+    Promise.all(jobs).then(function (results) {
+      results.forEach(function (f) { if (f) files.push(f); });
       var parts = makeZip(files);
       download(new Blob(parts, { type: 'application/zip' }), base + '.zip');
-    } catch (e) {
-      alert('Could not build the zip. Export the CSV instead and let me know.');
+    }).catch(function (e) {
       console.error(e);
-      return;
-    }
-
-    if (!photoCount) {
-      // No photos is normal on a clean job — just don't imply otherwise.
-      console.log('Zip contains the CSV only; no photos attached.');
-    }
+      alert('Could not build the zip. Export the CSV instead.');
+    });
   }
 
   function clearTests() {
@@ -1969,9 +2090,10 @@
               '<span class="rpt-fail">Not recorded</span></div>';
           }
 
-          var photos = (t.photos || []).map(function (src) {
-            return '<img class="rpt-photo" src="' + src + '">';
-          }).join('');
+          var photos = (t.photoIds || []).filter(function (id) { return photoUrls[id]; })
+            .map(function (id) {
+              return '<img class="rpt-photo" src="' + photoUrls[id] + '">';
+            }).join('');
 
           return '<div class="rpt-item">' +
             '<div class="rpt-itemhead"><b>' + esc(t.appliance) + '</b>' +
@@ -2021,14 +2143,26 @@
       }
     });
 
-    // Give the layout a beat to settle, and images a chance to decode.
-    setTimeout(function () {
-      try {
-        window.print();
-      } catch (e) {
-        alert('Printing is unavailable here. Use the browser Share menu, then Print.');
-      }
-    }, 250);
+    // Images must be decoded before the print dialog opens or they come out blank.
+    var imgs = Array.prototype.slice.call(root.querySelectorAll('img'));
+    var ready = Promise.all(imgs.map(function (im) {
+      if (im.complete && im.naturalWidth) return Promise.resolve();
+      return new Promise(function (res) {
+        im.addEventListener('load', res, { once: true });
+        im.addEventListener('error', res, { once: true });
+        setTimeout(res, 3000);
+      });
+    }));
+
+    ready.then(function () {
+      setTimeout(function () {
+        try {
+          window.print();
+        } catch (e) {
+          alert('Printing is unavailable here. Use the browser Share menu, then Print.');
+        }
+      }, 120);
+    });
   }
 
   function cleanupPrint() {
@@ -2041,6 +2175,11 @@
 
   function buildReport(which) {
     if (!state.tests.length) { alert('Nothing to report on yet'); return; }
+    // make sure every stored photo has a display URL before rendering
+    refreshPhotoUrls().then(function () { buildReportNow(which); });
+  }
+
+  function buildReportNow(which) {
     var ctx = jobContext();
 
     var warn = [];
@@ -2065,7 +2204,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v39';
+  var APP_VERSION = 'v41';
 
   function applyTheme() {
     var pref = state.theme || 'system';
@@ -2086,12 +2225,11 @@
     });
   }
 
-  function photoBytes() {
-    var n = 0;
-    state.tests.forEach(function (t) {
-      (t.photos || []).forEach(function (p) { n += p.length; });
-    });
-    return n;
+  function storageEstimate() {
+    if (navigator.storage && navigator.storage.estimate) {
+      return navigator.storage.estimate().catch(function () { return null; });
+    }
+    return Promise.resolve(null);
   }
 
   function renderItemManage() {
@@ -2121,18 +2259,22 @@
   }
 
   function renderSettings() {
-    var total = 0;
-    try { total = (localStorage.getItem(STORAGE_KEY) || '').length; } catch (e) {}
-    var photos = photoBytes();
-    var count = state.tests.reduce(function (a, t) {
-      return a + ((t.photos || []).length);
-    }, 0);
+    var recSize = 0;
+    try { recSize = (localStorage.getItem(STORAGE_KEY) || '').length; } catch (e) {}
+    var count = allPhotoIds().length;
+    var node = document.getElementById('storageStat');
 
-    document.getElementById('storageStat').textContent =
-      (total / 1048576).toFixed(2) + ' MB used of roughly 5 MB. ' +
-      count + (count === 1 ? ' photo' : ' photos') +
-      ' accounting for ' + (photos / 1048576).toFixed(2) + ' MB. ' +
+    node.textContent = count + (count === 1 ? ' photo' : ' photos') + ' stored. ' +
+      'Records ' + (recSize / 1024).toFixed(0) + ' KB. ' +
       state.recentItems.length + ' remembered item names.';
+
+    storageEstimate().then(function (est) {
+      if (!est || !est.quota) return;
+      node.textContent = count + (count === 1 ? ' photo' : ' photos') + ' stored, using ' +
+        (est.usage / 1048576).toFixed(1) + ' MB of ' +
+        (est.quota / 1048576).toFixed(0) + ' MB available. ' +
+        state.recentItems.length + ' remembered item names.';
+    });
 
     var bits = [COMPANY.name, 'ABN ' + COMPANY.abn];
     bits.push('app ' + APP_VERSION);
@@ -2233,7 +2375,7 @@
         failReason: get(r, 'Fail Reason'),
         actionTaken: get(r, 'Action Taken'),
         reportedTo: get(r, 'Reported To'),
-        photos: [],
+        photoIds: [],
         notes: get(r, 'Notes')
       });
 
@@ -2351,11 +2493,16 @@
     var del = e.target.closest('[data-del]');
     if (del) {
       var t = findTest(del.getAttribute('data-del'));
-      if (t && t.photos) {
-        t.photos.splice(Number(del.getAttribute('data-idx')), 1);
+      var pid = del.getAttribute('data-pid');
+      if (t && pid) {
+        t.photoIds = (t.photoIds || []).filter(function (x) { return x !== pid; });
+        photoDelete(pid).catch(function () {});
+        if (photoUrls[pid]) { URL.revokeObjectURL(photoUrls[pid]); delete photoUrls[pid]; }
         renderFollowUp();
-        document.getElementById('fb-' + t.id).classList.add('open');
+        var open = document.getElementById('fb-' + t.id);
+        if (open) open.classList.add('open');
         save();
+        renderSettings();
       }
       return;
     }
@@ -2383,27 +2530,51 @@
       var input = document.createElement('input');
       input.type = 'file';
       input.accept = 'image/*';
-      input.setAttribute('capture', 'environment');
+      // no capture attribute: iOS then offers Photo Library / Take Photo / Choose File
+      input.setAttribute('multiple', 'multiple');
       input.addEventListener('change', function () {
-        var file = this.files && this.files[0];
-        if (!file) return;
-        compressImage(file, function (dataUrl) {
-          if (!dataUrl) { alert('Could not read that image'); return; }
-          var t = findTest(id);
-          if (!t) return;
-          t.photos = t.photos || [];
-          if (t.photos.length >= 4) { alert('Four photos per item is the limit'); return; }
-          t.photos.push(dataUrl);
-          try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-          } catch (err) {
-            t.photos.pop();
-            alert('Storage is full. Save your photos out and clear them, then try again.');
+        var files = Array.prototype.slice.call(this.files || []);
+        if (!files.length) return;
+        var t = findTest(id);
+        if (!t) return;
+        t.photoIds = t.photoIds || [];
+
+        var room = MAX_PHOTOS - t.photoIds.length;
+        if (room <= 0) { alert(MAX_PHOTOS + ' photos per item is the limit'); return; }
+        var skipped = files.length - room;
+        files = files.slice(0, room);
+
+        var added = 0;
+        var next = function () {
+          if (!files.length) {
+            save();
+            renderFollowUp();
+            var open = document.getElementById('fb-' + id);
+            if (open) open.classList.add('open');
+            renderSettings();
+            if (skipped > 0) {
+              alert('Added ' + added + '. ' + skipped + ' not added \u2014 ' +
+                    MAX_PHOTOS + ' photos per item is the limit.');
+            }
             return;
           }
-          renderFollowUp();
-          document.getElementById('fb-' + id).classList.add('open');
-        });
+          var file = files.shift();
+          compressImage(file, function (blob) {
+            if (!blob) { next(); return; }
+            var pid = newPhotoId(t);
+            photoPut(pid, blob).then(function () {
+              t.photoIds.push(pid);
+              photoUrls[pid] = URL.createObjectURL(blob);
+              added++;
+              next();
+            }).catch(function (err) {
+              console.error(err);
+              alert('Could not save that photo. Device storage may be full.');
+              next();
+            });
+          });
+        };
+        next();
       });
       input.click();
     }
@@ -2454,11 +2625,14 @@
   });
 
   document.getElementById('clearPhotosBtn').addEventListener('click', function () {
-    var n = state.tests.reduce(function (a, t) { return a + ((t.photos || []).length); }, 0);
+    var n = allPhotoIds().length;
     if (!n) { alert('There are no photos stored.'); return; }
     if (!confirm('Delete all ' + n + (n === 1 ? ' photo' : ' photos') + '?\n\n' +
                  'Test records are kept. Export the zip first if you still need them.')) return;
-    state.tests.forEach(function (t) { t.photos = []; });
+    Object.keys(photoUrls).forEach(function (id) { URL.revokeObjectURL(photoUrls[id]); });
+    photoUrls = {};
+    state.tests.forEach(function (t) { t.photoIds = []; });
+    photoClear().catch(function () {});
     renderFollowUp(); renderSettings(); save();
   });
 
@@ -2610,6 +2784,11 @@
   renderFollowUp();
   applyTheme();
   renderSettings();
+
+  migratePhotos()
+    .then(refreshPhotoUrls)
+    .then(function () { renderFollowUp(); renderSettings(); })
+    .catch(function (e) { console.error('Photo store unavailable', e); });
 
   // Prompt job setup on a fresh start; stay out of the way once it's filled in.
   if (!state.client && !state.site && !state.jobRef) {
