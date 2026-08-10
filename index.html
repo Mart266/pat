@@ -1840,7 +1840,7 @@
     document.getElementById('undoBtn').addEventListener('click', undoLast);
 
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { el2.classList.remove('show'); }, passed ? 2200 : 3500);
+    toastTimer = setTimeout(function () { el2.classList.remove('show'); }, passed ? 4000 : 5000);
   }
 
   function undoLast() {
@@ -1880,6 +1880,14 @@
 
   function handleTest(result) {
     if (submitLock) return;
+
+    var tag = state.tagNumber.trim();
+    if (!tag) {
+      alert('Enter a tag number before recording a test result.');
+      el.tagNumber.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(function () { el.tagNumber.focus(); }, 220);
+      return;
+    }
 
     var name = state.appliance.trim();
     if (!name) {
@@ -2565,7 +2573,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v54';
+  var APP_VERSION = 'v55';
 
   function applyTheme() {
     var pref = state.theme || 'system';
