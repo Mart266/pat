@@ -769,7 +769,7 @@
     itemPorts: {},
     theme: 'system',
     instrument: 'Aegis Patrol Pro CZ5001',
-    calibration: '10 Aug 2026, internal verification cert CR-INT-20260810-001'
+    calibration: 'Aug 2026, cert CR-INT-20260810-001'
   };
 
   var COMPANY = {
@@ -916,7 +916,9 @@
         state.instrument = (data.instrument === 'Aegis Patrol Pro CZ5001 portable appliance tester') ? 'Aegis Patrol Pro CZ5001' : data.instrument;
       }
       if (data.calibration) {
-        state.calibration = (data.calibration === 'Jul 2026') ? '10 Aug 2026, internal verification cert CR-INT-20260810-001' : data.calibration;
+        var stale = ['Jul 2026', '10 Aug 2026, internal verification cert CR-INT-20260810-001'];
+        state.calibration = (stale.indexOf(data.calibration) !== -1)
+          ? 'Aug 2026, cert CR-INT-20260810-001' : data.calibration;
       }
     } catch (e) {
       console.error('Load failed', e);
@@ -2212,7 +2214,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v44';
+  var APP_VERSION = 'v45';
 
   function applyTheme() {
     var pref = state.theme || 'system';
