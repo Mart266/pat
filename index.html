@@ -2390,7 +2390,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v48';
+  var APP_VERSION = 'v49';
 
   function applyTheme() {
     var pref = state.theme || 'system';
@@ -2515,6 +2515,11 @@
     });
 
     var added = 0, skipped = 0;
+    // The export is written newest-first. Give imported rows ids that descend in
+    // that same order, so the sort below restores exactly the original sequence
+    // instead of falling back on a random tiebreak.
+    var idBase = Date.now();
+    var rowIndex = 0;
     var get = function (r, name) {
       var i = col[name];
       return i === undefined ? '' : (r[i] || '').trim();
@@ -2539,7 +2544,7 @@
       var months = Number(get(r, 'Test Period').replace(/[^0-9]/g, '')) || retestMonths(tag);
 
       state.tests.push({
-        id: Date.now() + Math.floor(Math.random() * 100000),
+        id: idBase - (rowIndex++),
         appliance: name,
         client: get(r, 'Client'),
         site: get(r, 'Site'),
@@ -2577,6 +2582,7 @@
 
     state.recentItems = state.recentItems.slice(0, MAX_REMEMBERED);
     // newest first, matching how entries are logged
+    // newest date first; within a date, the order the rows arrived in
     state.tests.sort(function (a, b) {
       return String(b.dateIso || '').localeCompare(String(a.dateIso || '')) ||
              (b.id - a.id);
