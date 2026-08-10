@@ -76,7 +76,8 @@
   }
   .chip.active { background-color: #18181b; border-color: #18181b; color: #fff; }
 
-  .typeSelector { display: flex; gap: 6px; margin-bottom: 12px; }
+  .typeSelector { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .typeButton { flex: 1 1 28%; }
   .typeButton {
     flex: 1; padding: 10px 6px; border: 1px solid #d4d4d8; background-color: #fff;
     border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;
@@ -124,6 +125,19 @@
   .panelToggle .summary { font-weight: 500; text-transform: none; letter-spacing: 0; color: #71717a; }
   .panelBody { display: none; }
   .panelBody.open { display: block; }
+  .portRow { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .portChip {
+    width: 40px; padding: 9px 0; border: 1px solid #d4d4d8; background-color: #fff;
+    border-radius: 6px; font-size: 13px; font-weight: 700; cursor: pointer;
+    color: #3f3f46; font-family: inherit; text-align: center;
+  }
+  .portChip.bad { background-color: #b91c1c; border-color: #b91c1c; color: #fff; }
+  html[data-theme="dark"] .portChip {
+    background-color: #1c1c1f; border-color: #3f3f46; color: #d4d4d8;
+  }
+  html[data-theme="dark"] .portChip.bad {
+    background-color: #b91c1c; border-color: #b91c1c; color: #fff;
+  }
   .checkGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; margin-bottom: 12px; }
     .checkItem { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #3f3f46; }
   .checkItem.failed { color: #991b1b; font-weight: 600; }
@@ -343,6 +357,7 @@
 
   @page { size: A4; margin: 14mm; }
   /* A report is a document: keep it light even when the app is in dark mode. */
+  body.printing #toast { display: none !important; }
   html[data-theme="dark"] body.printing { background-color: #fff; color: #1a1a1c; }
   html[data-theme="dark"] #printRoot { background-color: #fff; color: #1a1a1c; }
 
@@ -351,6 +366,7 @@
     html[data-theme="dark"] body { background: #fff !important; color: #1a1a1c !important; }
     .rpt-page { padding: 0; }
     .rpt-bar { display: none !important; }
+    #toast { display: none !important; }
   }
 
   #toast {
@@ -481,6 +497,21 @@
   html[data-theme="dark"] .segRow button.on {
     background-color: #f4f4f5; color: #18181b; border-color: #f4f4f5;
   }
+  .forgetRow { display: flex; flex-wrap: wrap; gap: 6px; }
+  .forgetChip {
+    display: inline-flex; align-items: center; gap: 7px; padding: 6px 8px 6px 10px;
+    border: 1px solid #d4d4d8; background-color: #fafafa; border-radius: 14px;
+    font-size: 12px; color: #3f3f46; font-family: inherit;
+  }
+  .forgetChip button {
+    border: none; background: #e4e4e7; color: #52525b; width: 18px; height: 18px;
+    border-radius: 9px; font-size: 12px; line-height: 1; cursor: pointer;
+    font-family: inherit; padding: 0;
+  }
+  html[data-theme="dark"] .forgetChip {
+    background-color: #1c1c1f; border-color: #3f3f46; color: #d4d4d8;
+  }
+  html[data-theme="dark"] .forgetChip button { background: #3f3f46; color: #e4e4e7; }
   .dataBtns { display: flex; gap: 6px; flex-wrap: wrap; }
   .dataBtns button {
     padding: 8px 11px; border: 1px solid #d4d4d8; background-color: #fff;
@@ -551,6 +582,24 @@
       <button class="typeButton active" data-type="Class 1">Class 1</button>
       <button class="typeButton" data-type="Class 2">Class 2</button>
       <button class="typeButton" data-type="Lead">Lead</button>
+      <button class="typeButton" data-type="Multi-port">Multi-port</button>
+      <button class="typeButton" data-type="Microwave">Microwave</button>
+    </div>
+
+    <div id="portWrap" style="display:none">
+      <label class="label">Outlets on this device</label>
+      <div class="segRow" id="portPresets">
+        <button data-ports="2">2</button>
+        <button data-ports="4">4</button>
+        <button data-ports="6">6</button>
+        <button data-ports="8">8</button>
+      </div>
+    </div>
+
+    <div id="mwWrap" style="display:none">
+      <label class="label" for="leakage">Leakage reading, mW/cm&sup2; at 50&nbsp;mm</label>
+      <input class="field" type="number" id="leakage" step="0.1" min="0" inputmode="decimal">
+      <div class="settingHint" id="leakageNote">Limit under AS/NZS 60335.2.25 is 5&nbsp;mW/cm&sup2;.</div>
     </div>
 
     <button class="panelToggle" id="assetToggle" type="button">
@@ -615,22 +664,6 @@
   </button>
   <div class="testsList panelBody" id="settingsPanel" style="margin-bottom:16px">
     <div class="settingRow">
-      <div class="settingLabel">Business details</div>
-      <div class="settingHint">Used on your reports. Held only in this browser on this
-        device &mdash; not part of the app's published source.</div>
-      <label class="label" for="coName">Business name</label>
-      <input class="field" type="text" id="coName" autocomplete="off">
-      <label class="label" for="coAbn">ABN</label>
-      <input class="field" type="text" id="coAbn" autocomplete="off">
-      <label class="label" for="coPhone">Phone</label>
-      <input class="field" type="text" id="coPhone" autocomplete="off">
-      <label class="label" for="coWeb">Website</label>
-      <input class="field" type="text" id="coWeb" autocomplete="off">
-      <label class="label" for="coAddress">Address</label>
-      <input class="field" type="text" id="coAddress" autocomplete="off">
-    </div>
-
-    <div class="settingRow">
       <div class="settingLabel">Appearance</div>
       <div class="settingHint">System follows your phone's light or dark setting.</div>
       <div class="segRow" id="themeRow">
@@ -647,6 +680,13 @@
       <div class="dataBtns">
         <button id="importBtn">Choose CSV file</button>
       </div>
+    </div>
+
+    <div class="settingRow">
+      <div class="settingLabel">Remembered items</div>
+      <div class="settingHint">Tap the cross to forget a name &mdash; useful after a typo.
+        Logged tests are not affected.</div>
+      <div class="forgetRow" id="itemManage"></div>
     </div>
 
     <div class="settingRow">
@@ -710,23 +750,34 @@
     testType: 'Class 1',
     notes: '',
     recentItems: [],
-    technician: '',
+    technician: 'Martin Nguyen',
     client: '',
     jobRef: '',
     passedItems: [],
     make: '',
     model: '',
     serial: '',
+    portCount: 4,
+    failedPorts: [],
+    leakage: '',
     itemTypes: {},
-    company: { name: '', abn: '', phone: '', web: '', address: '' },
+    itemPorts: {},
     theme: 'system',
     instrument: 'Aegis Patrol Pro CZ5001',
     calibration: 'Jul 2026'
   };
 
-  // Business details are entered in Settings and held only in this browser's
-  // storage. Nothing identifying is committed to the source.
-  var COMPANY_FIELDS = ['name', 'abn', 'phone', 'web', 'address'];
+  var COMPANY = {
+    name: 'Test Tag Melbourne',
+    abn: '36 246 545 097',
+    phone: '0408 130 066',
+    web: 'testtagmelb.com.au',
+    address: '13 Slough St, Deer Park VIC 3023'
+  };
+
+  var MW_LIMIT = 5;          // mW/cm2 at 50 mm, AS/NZS 60335.2.25
+  var MULTI = 'Multi-port';
+  var MICROWAVE = 'Microwave';
 
   var ACTIONS = [
     '',
@@ -785,11 +836,10 @@
     instrument: document.getElementById('instrument'),
     calibration: document.getElementById('calibration'),
     reportsCard: document.getElementById('reportsCard'),
-    coName: document.getElementById('coName'),
-    coAbn: document.getElementById('coAbn'),
-    coPhone: document.getElementById('coPhone'),
-    coWeb: document.getElementById('coWeb'),
-    coAddress: document.getElementById('coAddress')
+    portWrap: document.getElementById('portWrap'),
+    mwWrap: document.getElementById('mwWrap'),
+    leakage: document.getElementById('leakage'),
+    leakageNote: document.getElementById('leakageNote')
   };
 
   // Increments the last run of digits in a tag, preserving any prefix and zero-padding.
@@ -850,14 +900,11 @@
       state.testType = data.testType || 'Class 1';
       state.recentItems = data.recentItems || [];
       state.itemTypes = data.itemTypes || {};
+      state.itemPorts = data.itemPorts || {};
+      if (data.portCount) state.portCount = data.portCount;
       if (typeof data.technician === 'string') state.technician = data.technician;
       state.client = data.client || '';
       state.jobRef = data.jobRef || '';
-      if (data.company) {
-        COMPANY_FIELDS.forEach(function (k) {
-          if (typeof data.company[k] === 'string') state.company[k] = data.company[k];
-        });
-      }
       if (data.theme) state.theme = data.theme;
       if (data.instrument) {
         // fold the old verbose default forward, but keep anything hand-edited
@@ -908,15 +955,89 @@
   // Tracks whether the tester has chosen a type by hand for the current entry,
   // so a prediction never silently overrides a deliberate selection.
   var typeTouched = false;
+  var portsTouched = false;
 
   function predictType() {
-    if (typeTouched) return;
     var key = state.appliance.trim().toLowerCase();
     if (!key) return;
-    var remembered = state.itemTypes[key];
-    if (remembered && remembered !== state.testType) {
-      state.testType = remembered;
-      renderTypeSelector();
+
+    if (!typeTouched) {
+      var remembered = state.itemTypes[key];
+      if (remembered && remembered !== state.testType) {
+        state.testType = remembered;
+        renderTypeSelector();
+      }
+    }
+
+    // recall how many outlets this item had last time
+    if (!portsTouched && state.testType === MULTI) {
+      var ports = state.itemPorts[key];
+      if (ports && Number(ports) !== Number(state.portCount)) {
+        state.portCount = Number(ports);
+        renderPorts();
+      }
+    }
+  }
+
+  // A multi-port device counts as one test per outlet, so the reports tally
+  // the work actually performed rather than the number of items handled.
+  function testUnits(t) {
+    return (t.testType === MULTI && t.portCount) ? Number(t.portCount) : 1;
+  }
+  function failedUnits(t) {
+    if (t.testType === MULTI && t.portCount) {
+      if (t.result !== 'fail') return 0;
+      // until specific outlets are recorded, assume the whole device failed
+      return (t.failedPorts || []).length || Number(t.portCount);
+    }
+    return t.result === 'fail' ? 1 : 0;
+  }
+  function passedUnits(t) { return testUnits(t) - failedUnits(t); }
+
+  function renderPorts() {
+    var n = Math.max(1, Math.min(24, Number(state.portCount) || 1));
+    document.getElementById('portPresets').querySelectorAll('[data-ports]')
+      .forEach(function (b) {
+        b.classList.toggle('on', Number(b.getAttribute('data-ports')) === n);
+      });
+  }
+
+  function portSummary(t) {
+    var n = Number(t.portCount) || 0;
+    var f = (t.failedPorts || []).length;
+    if (!f) return 'None marked \u2014 counted as all ' + n + ' outlets failed.';
+    return f + ' of ' + n + ' outlets failed: ' + t.failedPorts.join(', ') + '.';
+  }
+
+  function portChips(t) {
+    var n = Number(t.portCount) || 0;
+    var failed = t.failedPorts || [];
+    var html = '';
+    for (var i = 1; i <= n; i++) {
+      html += '<button class="portChip' + (failed.indexOf(i) !== -1 ? ' bad' : '') +
+              '" data-fport="' + t.id + '" data-n="' + i + '">' + i + '</button>';
+    }
+    return html;
+  }
+
+  function renderConditionalFields() {
+    var multi = state.testType === MULTI;
+    var mw = state.testType === MICROWAVE;
+    el.portWrap.style.display = multi ? '' : 'none';
+    el.mwWrap.style.display = mw ? '' : 'none';
+    if (multi) renderPorts();
+    if (mw) {
+      var v = parseFloat(state.leakage);
+      if (state.leakage === '' || isNaN(v)) {
+        el.leakageNote.textContent = 'Limit under AS/NZS 60335.2.25 is 5 mW/cm\u00b2 at 50 mm.';
+        el.leakageNote.style.color = '';
+      } else if (v > MW_LIMIT) {
+        el.leakageNote.textContent = v + ' mW/cm\u00b2 exceeds the 5 mW/cm\u00b2 limit.';
+        el.leakageNote.style.color = '#b91c1c';
+      } else {
+        el.leakageNote.textContent = v + ' mW/cm\u00b2 is within the 5 mW/cm\u00b2 limit.';
+        el.leakageNote.style.color = '#15803d';
+      }
     }
   }
 
@@ -929,6 +1050,7 @@
         buttons[i].classList.remove('active');
       }
     }
+    renderConditionalFields();
   }
 
   // Store-only ZIP writer. JPEGs are already compressed, so no deflate needed.
@@ -1098,6 +1220,12 @@
             ? '<span class="failBadge">' + escapeHtml(t.failedItems.join(', ')) + '</span>' : '') +
         '</div>' +
         '<div class="followBody" id="fb-' + t.id + '">' +
+          ((t.testType === MULTI && Number(t.portCount))
+            ? '<label class="label">Outlets \u2014 mark any that failed</label>' +
+              '<div class="portRow">' + portChips(t) + '</div>' +
+              '<div class="settingHint" id="ps-' + t.id + '">' +
+                portSummary(t) + '</div>'
+            : '') +
           '<label class="label">Reason for failure</label>' +
           '<textarea class="field" data-field="failReason" data-id="' + t.id + '">' +
             escapeHtml(t.failReason || '') + '</textarea>' +
@@ -1155,6 +1283,12 @@
             (place ? '<span>' + escapeHtml(place) + '</span>' : '') +
             '<span>' + escapeHtml(t.date + ' ' + t.time) + '</span>' +
             (t.retestMonths ? '<span>' + t.retestMonths + 'mth \u2192 ' + escapeHtml(t.nextTestDisplay) + '</span>' : '') +
+            (t.testType === MULTI && t.portCount
+              ? '<span>' + t.portCount + ' outlets' +
+                ((t.failedPorts || []).length ? ', ' + t.failedPorts.length + ' failed' : '') +
+                '</span>' : '') +
+            (t.testType === MICROWAVE && t.leakage !== ''
+              ? '<span>' + escapeHtml(t.leakage) + ' mW/cm\u00b2</span>' : '') +
             ((t.failedItems && t.failedItems.length)
               ? '<span class="failBadge">' + t.failedItems.length + ' insp. fail</span>' : '') +
           '</div>' +
@@ -1296,11 +1430,7 @@
     el.serial.value = state.serial;
     el.instrument.value = state.instrument;
     el.calibration.value = state.calibration;
-    el.coName.value = state.company.name;
-    el.coAbn.value = state.company.abn;
-    el.coPhone.value = state.company.phone;
-    el.coWeb.value = state.company.web;
-    el.coAddress.value = state.company.address;
+    el.leakage.value = state.leakage;
     var a = [state.make, state.model].filter(Boolean).join(' ');
     el.assetSummary.textContent = a ? '\u2014 ' + a : '';
   }
@@ -1371,6 +1501,27 @@
       el.appliance.focus();
       return;
     }
+
+    // A microwave over the limit cannot be recorded as a pass.
+    if (state.testType === MICROWAVE) {
+      var lk = parseFloat(state.leakage);
+      if (state.leakage === '' || isNaN(lk)) {
+        alert('Enter the leakage reading in mW/cm\u00b2 before recording this test.');
+        el.leakage.focus();
+        return;
+      }
+      if (result === 'pass' && lk > MW_LIMIT) {
+        alert('A reading of ' + lk + ' mW/cm\u00b2 exceeds the 5 mW/cm\u00b2 limit in '
+            + 'AS/NZS 60335.2.25, so this cannot be recorded as a pass.');
+        return;
+      }
+    }
+
+    if (state.testType === MULTI) {
+      state.portCount = Math.max(1, Math.min(24, Number(state.portCount) || 1));
+      state.failedPorts = [];   // recorded later, in the follow-up section
+    }
+
     lockButtons();
 
     var now = new Date();
@@ -1391,6 +1542,11 @@
       model: state.model.trim(),
       serial: state.serial.trim(),
       polarity: state.testType === 'Lead' ? (result === 'pass' ? 'Pass' : 'Fail') : '',
+      portCount: state.testType === MULTI ? Number(state.portCount) : null,
+      failedPorts: state.testType === MULTI ? state.failedPorts.slice().sort(function (a, b) {
+        return a - b;
+      }) : [],
+      leakage: state.testType === MICROWAVE ? String(state.leakage) : '',
       failReason: '',
       actionTaken: '',
       reportedTo: '',
@@ -1408,7 +1564,11 @@
     });
 
     state.itemTypes[name.toLowerCase()] = state.testType;
+    if (state.testType === MULTI) {
+      state.itemPorts[name.toLowerCase()] = Number(state.portCount);
+    }
     typeTouched = false;
+    portsTouched = false;
     state.recentItems = [name].concat(
       state.recentItems.filter(function (i) { return i.toLowerCase() !== name.toLowerCase(); })
     ).slice(0, MAX_REMEMBERED);
@@ -1417,6 +1577,8 @@
     state.notes = '';
     state.passedItems = allPassed();
     state.serial = '';
+    state.failedPorts = [];
+    state.leakage = '';
 
     lastLoggedId = state.tests[0].id;
     showToast(state.tests[0]);
@@ -1433,7 +1595,8 @@
     var headers = ['Asset ID', 'Description', 'Client', 'Site', 'Location', 'Job Reference',
                    'Technician', 'Test Type', 'Result', 'Test Date', 'Test Date ISO', 'Time',
                    'Test Period', 'Next Test Date', 'Next Test Date ISO',
-                   'Make', 'Model', 'Serial Number', 'Polarity', 'Visual Result']
+                   'Make', 'Model', 'Serial Number', 'Polarity',
+                   'Outlets', 'Failed Outlets', 'Leakage mW/cm2', 'Visual Result']
                    .concat(INSPECTION_ITEMS)
                    .concat(['Failed Inspection Items', 'Fail Reason', 'Action Taken',
                             'Reported To', 'Photo Count', 'Notes']);
@@ -1450,6 +1613,7 @@
         t.retestMonths ? t.retestMonths + ' months' : '',
         t.nextTestDisplay || '', t.nextTestIso || '',
         t.make || '', t.model || '', t.serial || '', t.polarity || '',
+        t.portCount || '', (t.failedPorts || []).join('; '), t.leakage || '',
         failed.length ? 'Fail' : 'Pass'
       ].concat(perItem).concat([
         failed.length ? failed.join('; ') : '',
@@ -1611,7 +1775,7 @@
   }
 
   function contactBlock() {
-    var c = state.company;
+    var c = COMPANY;
     var lines = [];
     if (c.phone) lines.push('<b>' + esc(c.phone) + '</b>');
     if (c.web) lines.push(esc(c.web));
@@ -1621,11 +1785,22 @@
   }
 
   function businessName() {
-    return state.company.name || 'This business';
+    return COMPANY.name;
+  }
+
+  function totals() {
+    var units = 0, failed = 0, items = state.tests.length, failItems = 0;
+    state.tests.forEach(function (t) {
+      units += testUnits(t);
+      failed += failedUnits(t);
+      if (t.result === 'fail') failItems++;
+    });
+    return { units: units, failed: failed, passed: units - failed,
+             items: items, failItems: failItems };
   }
 
   function docHead(title, ctx) {
-    var fails = state.tests.filter(function (t) { return t.result === 'fail'; }).length;
+    var tot = totals();
     return '' +
       '<div class="rpt-band">' +
         '<img src="./logo-letterhead.svg" alt="' + esc(businessName()) + '">' +
@@ -1638,8 +1813,9 @@
           (ctx.sites[0] ? '<br>' + esc(ctx.sites[0]) : '') + '</div>' +
         '<div><span>JOB</span>' + (esc(ctx.refs[0]) || '&mdash;') +
           '<br>' + esc(periodText(ctx)) + '</div>' +
-        '<div><span>SUMMARY</span>' + state.tests.length + ' tests<br>' +
-          fails + (fails === 1 ? ' failure' : ' failures') + '</div>' +
+        '<div><span>SUMMARY</span>' + tot.units +
+          (tot.units === 1 ? ' test' : ' tests') + '<br>' +
+          tot.failed + (tot.failed === 1 ? ' failure' : ' failures') + '</div>' +
       '</div>';
   }
 
@@ -1650,8 +1826,9 @@
   }
 
   function certificateHTML(ctx) {
-    var total = state.tests.length;
-    var fails = state.tests.filter(function (t) { return t.result === 'fail'; }).length;
+    var tot = totals();
+    var total = tot.units;
+    var fails = tot.failed;
     var where = [ctx.clients[0], ctx.sites[0]].filter(Boolean).join(', ') || 'The client';
 
     var rows = function (pairs) {
@@ -1665,7 +1842,7 @@
       'safety inspection and testing during the period <b>' + esc(periodText(ctx)) + '</b>.</p>' +
 
       '<div class="rpt-tiles">' +
-        '<div class="rpt-tile"><b>' + total + '</b><span>Items tested</span></div>' +
+        '<div class="rpt-tile"><b>' + total + '</b><span>Tests performed</span></div>' +
         '<div class="rpt-tile pass"><b>' + (total - fails) + '</b><span>Passed</span></div>' +
         '<div class="rpt-tile fail"><b>' + fails + '</b><span>Failed</span></div>' +
       '</div>' +
@@ -1679,7 +1856,9 @@
       '<h2 class="rpt-h2">Not within the scope of this inspection</h2>' +
       rows([
         ['RCDs &mdash; trip-time testing not performed', 'N/A'],
-        ['Microwaves &mdash; leakage testing to AS/NZS 60335.2.25 not performed', 'N/A'],
+        ['Microwaves &mdash; leakage testing to AS/NZS 60335.2.25',
+          state.tests.some(function (t) { return t.testType === MICROWAVE; })
+            ? 'See report' : 'N/A'],
         ['Emergency and exit lighting &mdash; AS/NZS 2293.2', 'N/A']
       ]) +
 
@@ -1689,9 +1868,10 @@
       ' immediately of any error or omission.</p>' +
 
       (fails
-        ? '<p><b>' + fails + ' item' + (fails === 1 ? '' : 's') + ' failed and ' +
-          (fails === 1 ? 'has' : 'have') + ' been removed from service.</b> Refer to the Fail ' +
-          'Report for the defects recorded and the action taken.</p>'
+        ? '<p><b>' + tot.failItems + ' item' + (tot.failItems === 1 ? '' : 's') +
+          ' failed and ' + (tot.failItems === 1 ? 'has' : 'have') +
+          ' been removed from service.</b> Refer to the Fail Report for the defects ' +
+          'recorded and the action taken.</p>'
         : '') +
 
       '<table class="rpt-sig"><tr>' +
@@ -1707,23 +1887,39 @@
     var g = groupByArea(state.tests);
     var body = g.order.map(function (area) {
       var items = g.map[area];
-      var passed = items.filter(function (t) { return t.result !== 'fail'; }).length;
+      var u = 0, f = 0;
+      items.forEach(function (t) { u += testUnits(t); f += failedUnits(t); });
       return '<h2 class="rpt-h2">' + esc(area.toUpperCase()) +
-        '<em>' + passed + ' of ' + items.length + ' passed</em></h2>' +
+        '<em>' + (u - f) + ' of ' + u + ' passed</em></h2>' +
         '<table class="rpt-tbl"><thead><tr>' +
           '<th>ASSET ID</th><th>ASSET</th><th>TECHNICIAN</th>' +
           '<th>TEST DATE</th><th>NEXT TEST</th><th class="rpt-r">RESULT</th>' +
         '</tr></thead><tbody>' +
         items.map(function (t) {
           var bad = t.result === 'fail';
+          var extra = '';
+          if (t.testType === MULTI && t.portCount) {
+            extra = '<br><span style="font-size:6.6pt;color:#8a8a93">' + t.portCount +
+              ' outlets tested' +
+              (bad ? ((t.failedPorts || []).length
+                        ? ' \u00b7 failed: ' + t.failedPorts.join(', ')
+                        : ' \u00b7 all outlets failed')
+                   : '') + '</span>';
+          } else if (t.testType === MICROWAVE && t.leakage !== '') {
+            extra = '<br><span style="font-size:6.6pt;color:#8a8a93">leakage ' +
+              esc(t.leakage) + ' mW/cm\u00b2</span>';
+          }
+          var resultText = (t.testType === MULTI && t.portCount)
+            ? (bad ? 'Fail ' + failedUnits(t) + ' of ' + t.portCount : 'Pass ' + t.portCount)
+            : (bad ? 'Fail' : 'Pass');
           return '<tr>' +
             '<td class="rpt-mono">' + esc(t.tagNumber) + '</td>' +
-            '<td>' + esc(t.appliance) + '</td>' +
+            '<td>' + esc(t.appliance) + extra + '</td>' +
             '<td>' + esc(t.technician) + '</td>' +
             '<td>' + esc(t.date) + '</td>' +
             '<td>' + (esc(t.nextTestDisplay) || '&mdash;') + '</td>' +
             '<td class="rpt-r ' + (bad ? 'rpt-fail' : 'rpt-pass') + '">' +
-              (bad ? 'Fail' : 'Pass') + '</td>' +
+              resultText + '</td>' +
           '</tr>';
         }).join('') +
         '</tbody></table>';
@@ -1750,6 +1946,13 @@
           }).join('');
 
           var detail = [
+            ['OUTLETS FAILED', (t.testType === MULTI && Number(t.portCount))
+              ? ((t.failedPorts || []).length
+                  ? t.failedPorts.join(', ') + ' of ' + t.portCount
+                  : 'All ' + t.portCount + ' outlets')
+              : ''],
+            ['LEAKAGE READING', (t.testType === MICROWAVE && t.leakage !== '')
+              ? t.leakage + ' mW/cm\u00b2 (limit 5)' : ''],
             ['REASON FOR FAILURE', t.failReason],
             ['ACTION TAKEN', t.actionTaken],
             ['REPORTED TO', t.reportedTo],
@@ -1793,6 +1996,10 @@
 
   function printHTML(html) {
     if (!html) { alert('Nothing to report on yet'); return; }
+    // clear any confirmation banner so it cannot appear over the document
+    clearTimeout(toastTimer);
+    document.getElementById('toast').classList.remove('show');
+
     var root = document.getElementById('printRoot');
     root.innerHTML =
       '<div class="rpt-bar">' +
@@ -1856,7 +2063,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v32';
+  var APP_VERSION = 'v37';
 
   function applyTheme() {
     var pref = state.theme || 'system';
@@ -1885,6 +2092,32 @@
     return n;
   }
 
+  function renderItemManage() {
+    var box = document.getElementById('itemManage');
+    if (!state.recentItems.length) {
+      box.innerHTML = '<span class="settingHint">Nothing remembered yet.</span>';
+      return;
+    }
+    box.innerHTML = state.recentItems.map(function (item) {
+      return '<span class="forgetChip">' + escapeHtml(item) +
+             '<button data-forget="' + escapeHtml(item) + '" ' +
+             'aria-label="Forget ' + escapeHtml(item) + '">&times;</button></span>';
+    }).join('');
+  }
+
+  function forgetItem(name) {
+    var key = name.toLowerCase();
+    state.recentItems = state.recentItems.filter(function (i) {
+      return i.toLowerCase() !== key;
+    });
+    delete state.itemTypes[key];
+    delete state.itemPorts[key];
+    renderChips();
+    renderItemManage();
+    renderSettings();
+    save();
+  }
+
   function renderSettings() {
     var total = 0;
     try { total = (localStorage.getItem(STORAGE_KEY) || '').length; } catch (e) {}
@@ -1899,11 +2132,11 @@
       ' accounting for ' + (photos / 1048576).toFixed(2) + ' MB. ' +
       state.recentItems.length + ' remembered item names.';
 
-    var bits = [state.company.name || 'Business details not set'];
-    if (state.company.abn) bits.push('ABN ' + state.company.abn);
+    var bits = [COMPANY.name, 'ABN ' + COMPANY.abn];
     bits.push('app ' + APP_VERSION);
     bits.push(state.tests.length + ' records held on this device');
     document.getElementById('aboutText').textContent = bits.join(' \u00b7 ');
+    renderItemManage();
   }
 
   // Minimal CSV reader: handles quoted fields, doubled quotes and CRLF.
@@ -2041,6 +2274,19 @@
     state.jobRef = this.value; renderJobSummary(); save();
   });
 
+  document.getElementById('portPresets').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-ports]');
+    if (!b) return;
+    state.portCount = Number(b.getAttribute('data-ports'));
+    renderPorts(); save();
+  });
+
+  el.leakage.addEventListener('input', function () {
+    state.leakage = this.value;
+    renderConditionalFields();
+    save();
+  });
+
   el.checkGrid.addEventListener('change', function (e) {
     var box = e.target;
     if (!box || box.type !== 'checkbox') return;
@@ -2100,6 +2346,23 @@
         document.getElementById('fb-' + t.id).classList.add('open');
         save();
       }
+      return;
+    }
+
+    var fp = e.target.closest('[data-fport]');
+    if (fp) {
+      var t = findTest(fp.getAttribute('data-fport'));
+      if (!t) return;
+      var n = Number(fp.getAttribute('data-n'));
+      t.failedPorts = t.failedPorts || [];
+      var at = t.failedPorts.indexOf(n);
+      if (at === -1) { t.failedPorts.push(n); } else { t.failedPorts.splice(at, 1); }
+      t.failedPorts.sort(function (a, b) { return a - b; });
+      fp.classList.toggle('bad', t.failedPorts.indexOf(n) !== -1);
+      var note = document.getElementById('ps-' + t.id);
+      if (note) note.textContent = portSummary(t);
+      renderList();
+      save();
       return;
     }
 
@@ -2186,6 +2449,11 @@
                  'Test records are kept. Export the zip first if you still need them.')) return;
     state.tests.forEach(function (t) { t.photos = []; });
     renderFollowUp(); renderSettings(); save();
+  });
+
+  document.getElementById('itemManage').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-forget]');
+    if (b) forgetItem(b.getAttribute('data-forget'));
   });
 
   document.getElementById('clearItemsBtn').addEventListener('click', function () {
@@ -2303,13 +2571,6 @@
   el.instrument.addEventListener('input', function () { state.instrument = this.value; save(); });
   el.calibration.addEventListener('input', function () { state.calibration = this.value; save(); });
 
-  [['coName','name'],['coAbn','abn'],['coPhone','phone'],
-   ['coWeb','web'],['coAddress','address']].forEach(function (pair) {
-    el[pair[0]].addEventListener('input', function () {
-      state.company[pair[1]] = this.value;
-      save();
-    });
-  });
 
   document.querySelector('.reportRow').addEventListener('click', function (e) {
     var btn = e.target.closest('[data-report]');
@@ -2333,6 +2594,7 @@
   renderCheckGrid();
   renderChips();
   renderTypeSelector();
+  renderConditionalFields();
   renderList();
   renderFollowUp();
   applyTheme();
