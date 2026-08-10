@@ -46,17 +46,54 @@
 
   h1.title { margin: 0 0 12px 0; font-size: 19px; font-weight: 700; color: #18181b; }
 
+  /* One sticky group, so the two bars stack on their own heights instead of
+     relying on a hardcoded offset that breaks with different text sizes. */
+  .stickyHead {
+    position: sticky; top: 0; z-index: 9;
+    padding: 8px 0 8px; margin: 0 0 12px;
+    background-color: #f4f4f5;
+  }
+  html[data-theme="dark"] .stickyHead { background-color: #09090b; }
+
   .currentTagCard {
-    position: sticky; top: 8px; z-index: 8; width: 100%; box-sizing: border-box;
+    position: static; z-index: auto; width: 100%; box-sizing: border-box;
     margin: 0 0 12px; padding: 10px 14px; border: 2px solid #18181b; border-radius: 8px;
     background: #fff; color: #18181b; font-family: inherit; cursor: pointer; text-align: left;
-    display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center;
+    display: grid; grid-template-columns: auto minmax(0,1fr) auto auto; gap: 10px;
+    align-items: center;
     box-shadow: 0 4px 16px rgba(0,0,0,.08);
   }
   .currentTagCard .ctLabel { font-size: 10px; font-weight: 800; letter-spacing: .7px; text-transform: uppercase; color: #71717a; }
   .currentTagCard strong { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 24px; line-height: 1; text-align: center; letter-spacing: .02em; }
   .currentTagCard .ctHint { font-size: 10px; color: #71717a; white-space: nowrap; }
   .currentTagCard.empty strong { color: #a1a1aa; }
+
+  /* Persistent record of the last test, so the tag on the appliance in hand can
+     always be checked against what was just logged. */
+  .prevTestBar {
+    position: static; width: 100%; box-sizing: border-box;
+    margin: 8px 0 0; padding: 8px 12px; border-radius: 8px;
+    display: grid; grid-template-columns: auto minmax(0,1fr) auto auto; gap: 10px;
+    align-items: center;
+    color: #fff; font-size: 13px; box-shadow: 0 3px 12px rgba(0,0,0,.14);
+  }
+  .prevTestBar.pass { background-color: #15803d; }
+  .prevTestBar.fail { background-color: #b91c1c; }
+  .prevTestBar.empty { display: none; }
+  .prevTestBar .ptLabel {
+    font-size: 9px; font-weight: 800; letter-spacing: .7px; text-transform: uppercase;
+    opacity: .85; white-space: nowrap;
+  }
+  .prevTestBar .ptName {
+    font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .prevTestBar .ptTag {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 16px;
+    font-weight: 700; letter-spacing: .01em; white-space: nowrap;
+  }
+  .prevTestBar .ptResult { font-size: 12px; font-weight: 800; white-space: nowrap; }
+  @media print { .prevTestBar, .stickyHead { display: none !important; } }
+  body.printing .stickyHead { display: none !important; }
 
   .stats { display: flex; gap: 8px; }
   .stat { flex: 1; text-align: center; padding: 8px; background-color: #1c1c1f; border-radius: 6px; }
@@ -599,6 +636,9 @@
            autocapitalize="characters" spellcheck="false"
            style="text-transform:uppercase">
 
+    <label class="label" for="dateCompleted">Date completed (optional)</label>
+    <input class="field" type="date" id="dateCompleted">
+
     <label class="label" for="technician">Technician</label>
     <input class="field" type="text" id="technician" autocomplete="off">
 
@@ -611,11 +651,20 @@
     <button class="toggleButton" id="newJobBtn">Start new job</button>
   </div>
 
+  <div class="stickyHead" id="stickyHead">
   <button class="currentTagCard empty" id="currentTagCard" type="button" aria-label="Edit current tag number">
     <span class="ctLabel">Current tag</span>
     <strong id="currentTagDisplay">—</strong>
     <span class="ctHint">tap to edit</span>
   </button>
+
+  <div class="prevTestBar empty" id="prevTestBar" role="status" aria-live="polite">
+    <span class="ptLabel">Last test</span>
+    <span class="ptName" id="ptName"></span>
+    <span class="ptTag" id="ptTag"></span>
+    <span class="ptResult" id="ptResult"></span>
+  </div>
+  </div>
 
   <div id="toast" role="status" aria-live="polite"></div>
 
@@ -708,19 +757,6 @@
     Show form
   </button>
 
-  <div class="testsList" id="reportsCard" style="display:none">
-    <div class="listHeader">
-      <h2 class="listTitle">Reports</h2>
-    </div>
-    <div class="reportRow">
-      <button class="reportBtn primary" data-report="all">All reports</button>
-      <button class="reportBtn" data-report="certificate">Certificate</button>
-      <button class="reportBtn" data-report="concise">Concise</button>
-      <button class="reportBtn" data-report="fail">Fail report</button>
-    </div>
-    <div class="storageNote">Opens the print dialog. On iPhone choose Print, then pinch the preview and share it as a PDF.</div>
-  </div>
-
   <div class="testsList" id="followList" style="display:none">
     <div class="listHeader">
       <h2 class="listTitle">Failed items — follow up</h2>
@@ -744,7 +780,7 @@
     </div>
     <div class="listTools">
       <div class="listToolsTop">
-        <input class="field" id="testSearch" type="search" placeholder="Search tag, appliance, location…" autocomplete="off">
+        <input class="field" id="testSearch" type="search" placeholder="Search tag, appliance, location, test type…" autocomplete="off">
         <select class="field" id="testSort" aria-label="Sort logged tests">
           <option value="newest">Newest</option>
           <option value="oldest">Oldest</option>
@@ -761,6 +797,19 @@
       </div>
     </div>
     <div class="testsContainer" id="testsContainer"></div>
+  </div>
+
+  <div class="testsList" id="reportsCard" style="display:none">
+    <div class="listHeader">
+      <h2 class="listTitle">Reports</h2>
+    </div>
+    <div class="reportRow">
+      <button class="reportBtn primary" data-report="all">All reports</button>
+      <button class="reportBtn" data-report="certificate">Certificate</button>
+      <button class="reportBtn" data-report="concise">Concise</button>
+      <button class="reportBtn" data-report="fail">Fail report</button>
+    </div>
+    <div class="storageNote">Opens the print dialog. On iPhone choose Print, then pinch the preview and share it as a PDF.</div>
   </div>
 
   <button class="panelToggle" id="settingsToggle">
@@ -867,6 +916,7 @@
     itemPorts: {},
     recentLocations: [],
     recentReasons: [],
+    dateCompleted: '',
     theme: 'system',
     instrument: 'Aegis Patrol Pro CZ5001',
     calibration: 'Aug 2026, cert CR-INT-20260810-001',
@@ -900,6 +950,19 @@
   ];
 
   var ALL_TYPES = ['Class 1', 'Class 2', 'Lead', MULTI, MICROWAVE, 'Visual', '3 Phase'];
+
+  // loose spelling -> canonical type, for searching by test type
+  var TYPE_LOOKUP = (function () {
+    var m = {};
+    ALL_TYPES.forEach(function (ty) {
+      m[ty.toLowerCase().replace(/[\s\-]/g, '')] = ty;
+    });
+    m['3ph'] = '3 Phase';
+    m['3phase'] = '3 Phase';
+    m['multiport'] = MULTI;
+    m['powerboard'] = MULTI;
+    return m;
+  })();
 
   var INSPECTION_ITEMS = [
     'Cover / Guards', 'Flexible cord', 'Plugs', 'Controls', 'Safety Devices',
@@ -948,6 +1011,7 @@
     storageNote: document.getElementById('storageNote'),
     instrument: document.getElementById('instrument'),
     calibration: document.getElementById('calibration'),
+    dateCompleted: document.getElementById('dateCompleted'),
     reportsCard: document.getElementById('reportsCard'),
     locChips: document.getElementById('locChips'),
     portWrap: document.getElementById('portWrap'),
@@ -957,6 +1021,10 @@
     currentTagCard: document.getElementById('currentTagCard'),
     currentTagDisplay: document.getElementById('currentTagDisplay'),
     testSearch: document.getElementById('testSearch'),
+    prevTestBar: document.getElementById('prevTestBar'),
+    ptName: document.getElementById('ptName'),
+    ptTag: document.getElementById('ptTag'),
+    ptResult: document.getElementById('ptResult'),
     testSort: document.getElementById('testSort'),
     testFilter: document.getElementById('testFilter'),
     listResultCount: document.getElementById('listResultCount')
@@ -1027,6 +1095,7 @@
       if (typeof data.technician === 'string') state.technician = data.technician;
       state.client = data.client || '';
       state.jobRef = data.jobRef || '';
+      if (typeof data.dateCompleted === 'string') state.dateCompleted = data.dateCompleted;
       if (data.theme) state.theme = data.theme;
       state.signatureDataUrl = data.signatureDataUrl || '';
       state.signatureName = data.signatureName || '';
@@ -1253,6 +1322,14 @@
       else out.push(0xE0 | (c >> 12), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
     }
     return new Uint8Array(out);
+  }
+
+  function bytesToDataUrl(bytes, mime) {
+    var chunk = 0x8000, parts = [];
+    for (var i = 0; i < bytes.length; i += chunk) {
+      parts.push(String.fromCharCode.apply(null, bytes.subarray(i, i + chunk)));
+    }
+    return 'data:' + (mime || 'image/png') + ';base64,' + btoa(parts.join(''));
   }
 
   function dataUrlBytes(url) {
@@ -1585,6 +1662,7 @@
   }
 
   function renderList() {
+    renderPrevTest();
     var total = state.tests.length;
     var pass = 0, fail = 0;
     state.tests.forEach(function (t) { t.result === 'pass' ? pass++ : fail++; });
@@ -1600,9 +1678,23 @@
     var shownTests = state.tests.filter(function (t) {
       if (listFilter !== 'all' && t.result !== listFilter) return false;
       if (!listSearch) return true;
-      var hay = [t.tagNumber, t.appliance, t.location, t.site, t.client, t.jobRef, t.make, t.model, t.serial]
+
+      // Test types match only on a complete query. "Lea" shows nothing by type,
+      // "Lead" shows every lead, and "Leadi" drops them again and keeps looking
+      // for text. The type is deliberately kept out of the free-text haystack,
+      // otherwise a half-typed word would pull in types as you went.
+      var typeKey = listSearch.replace(/[\s\-]/g, '');
+      if (TYPE_LOOKUP[typeKey]) return t.testType === TYPE_LOOKUP[typeKey];
+
+      var hay = [t.tagNumber, t.appliance, t.location, t.site, t.client, t.jobRef,
+                 t.make, t.model, t.serial, t.notes,
+                 // so "fail" or "pass" narrows the list as well
+                 t.result === 'fail' ? 'fail failed' : 'pass passed']
         .join(' ').toLowerCase();
-      return hay.indexOf(listSearch) !== -1;
+      if (hay.indexOf(listSearch) !== -1) return true;
+      // typed without the space: "extensionlead" should still find one
+      var loose = hay.replace(/\s+/g, '');
+      return loose.indexOf(listSearch.replace(/\s+/g, '')) !== -1;
     }).slice();
 
     shownTests.sort(function (a, b) {
@@ -1796,6 +1888,24 @@
     if (el.currentTagCard) el.currentTagCard.classList.toggle('empty', !v);
   }
 
+  function renderPrevTest() {
+    var bar = el.prevTestBar;
+    if (!bar) return;
+    var t = state.tests[0];
+    if (!t) {
+      bar.className = 'prevTestBar empty';
+      el.ptName.textContent = '';
+      if (el.ptTag) el.ptTag.textContent = '';
+      el.ptResult.textContent = '';
+      return;
+    }
+    var failed = t.result === 'fail';
+    bar.className = 'prevTestBar ' + (failed ? 'fail' : 'pass');
+    el.ptName.textContent = t.appliance;
+    if (el.ptTag) el.ptTag.textContent = t.tagNumber || '';
+    el.ptResult.textContent = failed ? 'FAIL' : 'PASS';
+  }
+
   function restoreContinuityFromLatest() {
     if (!state.tests.length) return;
     var t = state.tests[0];
@@ -1831,6 +1941,7 @@
     el.serial.value = state.serial;
     el.instrument.value = state.instrument;
     el.calibration.value = state.calibration;
+    el.dateCompleted.value = state.dateCompleted;
     el.leakage.value = state.leakage;
     var a = [state.make, state.model].filter(Boolean).join(' ');
     el.assetSummary.textContent = a ? '\u2014 ' + a : '';
@@ -2024,7 +2135,7 @@
     var headers = ['Asset ID', 'Description', 'Client', 'Site', 'Location', 'Job Reference',
                    'Technician', 'Test Instrument', 'Instrument Calibration', 'Test Type', 'Result', 'Test Date', 'Test Date ISO', 'Time',
                    'Test Period', 'Next Test Date', 'Next Test Date ISO',
-                   'Make', 'Model', 'Serial Number', 'Polarity',
+                   'Date Completed', 'Make', 'Model', 'Serial Number', 'Polarity',
                    'Outlets', 'Failed Outlets', 'Leakage mW/cm2', 'Visual Result']
                    .concat(INSPECTION_ITEMS)
                    .concat(['Failed Inspection Items', 'Fail Reason', 'Action Taken',
@@ -2041,7 +2152,7 @@
         t.date, t.dateIso || '', t.time,
         t.retestMonths ? t.retestMonths + ' months' : '',
         t.nextTestDisplay || '', t.nextTestIso || '',
-        t.make || '', t.model || '', t.serial || '', t.polarity || '',
+        state.dateCompleted || '', t.make || '', t.model || '', t.serial || '', t.polarity || '',
         t.portCount || '', (t.failedPorts || []).join('; '), t.leakage || '',
         failed.length ? 'Fail' : 'Pass'
       ].concat(perItem).concat([
@@ -2110,6 +2221,13 @@
 
     Promise.all(jobs).then(function (results) {
       results.forEach(function (f) { if (f) files.push(f); });
+
+      // travel the signature with the export so a restore does not need re-signing
+      if (state.signatureDataUrl) {
+        try {
+          files.push({ name: 'signature.png', bytes: dataUrlBytes(state.signatureDataUrl) });
+        } catch (e) { console.error('signature not added to zip', e); }
+      }
       var parts = makeZip(files);
       download(new Blob(parts, { type: 'application/zip' }), base + '.zip');
     }).catch(function (e) {
@@ -2311,7 +2429,9 @@
         '<div><span>CLIENT</span>' + (esc(ctx.clients[0]) || '&mdash;') +
           (ctx.sites[0] ? '<br>' + esc(ctx.sites[0]) : '') + '</div>' +
         '<div><span>JOB</span>' + (esc(ctx.refs[0]) || '&mdash;') +
-          '<br>' + esc(periodText(ctx)) + '</div>' +
+          '<br>' + esc(periodText(ctx)) +
+          (state.dateCompleted
+            ? '<br>Completed ' + esc(longDate(state.dateCompleted)) : '') + '</div>' +
         '<div><span>SUMMARY</span>' + tot.units +
           (tot.units === 1 ? ' test' : ' tests') + '<br>' +
           tot.failed + (tot.failed === 1 ? ' failure' : ' failures') + '</div>' +
@@ -2388,7 +2508,8 @@
 
       '<table class="rpt-sig"><tr>' +
         '<td><span>TESTED BY</span>' + (esc(ctx.techs.join(', ')) || '&mdash;') + '</td>' +
-        '<td><span>DATE OF ISSUE</span>' + longDate(isoDate(new Date())) + '</td>' +
+        '<td><span>DATE OF ISSUE</span>' +
+          longDate(state.dateCompleted || isoDate(new Date())) + '</td>' +
         '<td><span>SIGNED</span>' + signatureMarkup() + '</td>' +
       '</tr></table>' +
       instrumentNote() +
@@ -2602,7 +2723,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v56';
+  var APP_VERSION = 'v59';
 
   function applyTheme() {
     var pref = state.theme || 'system';
@@ -2833,6 +2954,9 @@
       }
       // rebuild the location and fail-reason memories too, or a restore
       // leaves those lists empty even though the data is right there
+      if (!state.dateCompleted && get(r, 'Date Completed')) {
+        state.dateCompleted = get(r, 'Date Completed');
+      }
       state.recentLocations = remember(state.recentLocations, get(r, 'Location'));
       var rsn = get(r, 'Fail Reason');
       if (rsn) state.recentReasons = remember(state.recentReasons, rsn);
@@ -2869,7 +2993,22 @@
   function importZip(buf) {
     readZip(buf).then(function (files) {
       var csv = files.filter(function (f) { return /\.csv$/i.test(f.name); })[0];
-      var pics = files.filter(function (f) { return /\.(jpe?g|png)$/i.test(f.name); });
+      var sig = files.filter(function (f) {
+        return /(^|\/)signature\.(png|jpe?g)$/i.test(f.name);
+      })[0];
+      var pics = files.filter(function (f) {
+        return /\.(jpe?g|png)$/i.test(f.name) && f !== sig;
+      });
+
+      var sigRestored = false;
+      if (sig && !state.signatureDataUrl) {
+        try {
+          state.signatureDataUrl = bytesToDataUrl(sig.bytes,
+            /\.png$/i.test(sig.name) ? 'image/png' : 'image/jpeg');
+          state.signatureName = 'Restored from export';
+          sigRestored = true;
+        } catch (e) { console.error('signature not restored', e); }
+      }
 
       if (!csv) { alert('No CSV found inside that zip.'); return; }
 
@@ -2915,6 +3054,7 @@
         bits.push(attached + (attached === 1 ? ' photo' : ' photos') + ' attached');
         if (dup) bits.push(dup + ' photos already there');
         if (unmatched) bits.push(unmatched + ' photos had no matching asset ID');
+        if (sigRestored) bits.push('signature restored');
         alert(bits.join('.\n') + '.');
       });
     }).catch(function (e) {
@@ -3545,6 +3685,9 @@
 
   el.instrument.addEventListener('input', function () { state.instrument = this.value; save(); });
   el.calibration.addEventListener('input', function () { state.calibration = this.value; save(); });
+  el.dateCompleted.addEventListener('change', function () {
+    state.dateCompleted = this.value; save();
+  });
 
 
   document.querySelector('.reportRow').addEventListener('click', function (e) {
