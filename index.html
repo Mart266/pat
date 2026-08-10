@@ -589,7 +589,11 @@
     <div class="chipRow" id="chipRow"></div>
 
     <label class="label" for="location">Location</label>
-    <input class="field" type="text" id="location" autocomplete="off">
+    <div class="fieldWrap">
+      <input class="field" type="text" id="location" autocomplete="off">
+      <button class="fieldClear" id="locationClear" aria-label="Clear location">&times;</button>
+    </div>
+    <div class="chipRow" id="locChips"></div>
 
     <label class="label" for="tagNumber">Tag number</label>
     <input class="field mono" type="text" id="tagNumber" autocomplete="off">
@@ -785,6 +789,8 @@
     leakage: '',
     itemTypes: {},
     itemPorts: {},
+    recentLocations: [],
+    recentReasons: [],
     theme: 'system',
     instrument: 'Aegis Patrol Pro CZ5001',
     calibration: 'Aug 2026, cert CR-INT-20260810-001'
@@ -860,6 +866,7 @@
     instrument: document.getElementById('instrument'),
     calibration: document.getElementById('calibration'),
     reportsCard: document.getElementById('reportsCard'),
+    locChips: document.getElementById('locChips'),
     portWrap: document.getElementById('portWrap'),
     mwWrap: document.getElementById('mwWrap'),
     leakage: document.getElementById('leakage'),
@@ -925,6 +932,8 @@
       state.recentItems = data.recentItems || [];
       state.itemTypes = data.itemTypes || {};
       state.itemPorts = data.itemPorts || {};
+      state.recentLocations = data.recentLocations || [];
+      state.recentReasons = data.recentReasons || [];
       if (data.portCount) state.portCount = data.portCount;
       if (typeof data.technician === 'string') state.technician = data.technician;
       state.client = data.client || '';
@@ -963,6 +972,34 @@
   function renderJobSummary() {
     var parts = [state.client, state.site, state.jobRef].filter(Boolean);
     el.jobSummary.textContent = parts.length ? '\u2014 ' + parts.join(' \u00b7 ') : '';
+  }
+
+  // Keeps a most-recent-first list without duplicates, case-insensitively.
+  function remember(list, value, cap) {
+    var v = (value || '').trim();
+    if (!v) return list;
+    var out = [v].concat(list.filter(function (x) {
+      return x.toLowerCase() !== v.toLowerCase();
+    }));
+    return out.slice(0, cap || 60);
+  }
+
+  function renderLocChips() {
+    var query = state.location.trim().toLowerCase();
+    var items = state.recentLocations;
+    if (query) {
+      items = items.filter(function (i) {
+        return i.toLowerCase().indexOf(query) !== -1 && i.toLowerCase() !== query;
+      }).slice(0, CHIPS_SEARCH);
+    } else {
+      items = items.slice(0, CHIPS_IDLE);
+    }
+    el.locChips.innerHTML = items.map(function (item) {
+      return '<button class="chip" data-loc="' + escapeHtml(item) + '">' +
+             escapeHtml(item) + '</button>';
+    }).join('');
+    var wrap = el.location.parentNode;
+    if (wrap && wrap.classList) wrap.classList.toggle('filled', state.location.length > 0);
   }
 
   function renderChips() {
@@ -1033,6 +1070,18 @@
       .forEach(function (b) {
         b.classList.toggle('on', Number(b.getAttribute('data-ports')) === n);
       });
+  }
+
+  // Recent fail reasons, so a repeated defect is one tap rather than retyping.
+  function reasonChips(t) {
+    var items = state.recentReasons.filter(function (r) {
+      return r.toLowerCase() !== (t.failReason || '').trim().toLowerCase();
+    }).slice(0, CHIPS_IDLE);
+    if (!items.length) return '';
+    return '<div class="chipRow">' + items.map(function (r) {
+      return '<button class="chip" data-reason="' + escapeHtml(r) + '" data-rid="' + t.id +
+             '">' + escapeHtml(r) + '</button>';
+    }).join('') + '</div>';
   }
 
   function portSummary(t) {
@@ -1375,6 +1424,7 @@
           '<label class="label">Reason for failure</label>' +
           '<textarea class="field" data-field="failReason" data-id="' + t.id + '">' +
             escapeHtml(t.failReason || '') + '</textarea>' +
+          reasonChips(t) +
           '<label class="label">Action taken</label>' +
           '<select class="field" data-field="actionTaken" data-id="' + t.id + '">' +
             ACTIONS.map(function (a) {
@@ -1741,6 +1791,7 @@
       notes: state.notes.trim()
     });
 
+    state.recentLocations = remember(state.recentLocations, state.location);
     state.itemTypes[name.toLowerCase()] = state.testType;
     if (state.testType === MULTI) {
       state.itemPorts[name.toLowerCase()] = Number(state.portCount);
@@ -1764,6 +1815,7 @@
     syncInputs();
     renderCheckGrid();
     renderChips();
+    renderLocChips();
     renderList();
     renderFollowUp();
     save();
@@ -2338,7 +2390,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v47';
+  var APP_VERSION = 'v48';
 
   function applyTheme() {
     var pref = state.theme || 'system';
@@ -2717,6 +2769,20 @@
       return;
     }
 
+    var rc = e.target.closest('[data-reason]');
+    if (rc) {
+      var rt = findTest(rc.getAttribute('data-rid'));
+      if (rt) {
+        rt.failReason = rc.getAttribute('data-reason');
+        state.recentReasons = remember(state.recentReasons, rt.failReason);
+        save();
+        renderFollowUp();
+        var body = document.getElementById('fb-' + rt.id);
+        if (body) body.classList.add('open');
+      }
+      return;
+    }
+
     var fp = e.target.closest('[data-fport]');
     if (fp) {
       var t = findTest(fp.getAttribute('data-fport'));
@@ -2805,6 +2871,17 @@
     if (!t) return;
     t[f] = e.target.value;
     save();
+  });
+
+  // commit the reason to the remembered list when the field is left
+  el.followContainer.addEventListener('focusout', function (e) {
+    if (!e.target.getAttribute) return;
+    if (e.target.getAttribute('data-field') !== 'failReason') return;
+    var v = (e.target.value || '').trim();
+    if (!v) return;
+    state.recentReasons = remember(state.recentReasons, v);
+    save();
+    renderSettings();
   });
   el.followContainer.addEventListener('change', function (e) {
     var f = e.target.getAttribute && e.target.getAttribute('data-field');
@@ -2900,7 +2977,26 @@
   document.getElementById('inspToggle').addEventListener('click', function () {
     togglePanel(el.inspPanel, el.inspCaret);
   });
-  el.location.addEventListener('input', function () { state.location = this.value; save(); });
+  el.location.addEventListener('input', function () {
+    state.location = this.value; renderLocChips(); save();
+  });
+
+  document.getElementById('locationClear').addEventListener('click', function () {
+    state.location = '';
+    el.location.value = '';
+    renderLocChips();
+    el.location.focus();
+    save();
+  });
+
+  el.locChips.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-loc]');
+    if (!b) return;
+    state.location = b.getAttribute('data-loc');
+    el.location.value = state.location;
+    renderLocChips();
+    save();
+  });
   el.tagNumber.addEventListener('input', function () { state.tagNumber = this.value; save(); });
   el.notes.addEventListener('input', function () { state.notes = this.value; save(); });
 
@@ -3009,6 +3105,7 @@
   syncInputs();
   renderCheckGrid();
   renderChips();
+  renderLocChips();
   renderTypeSelector();
   renderConditionalFields();
   renderList();
