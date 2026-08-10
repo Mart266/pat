@@ -547,11 +547,13 @@
     <label class="label" for="client">Client</label>
     <input class="field" type="text" id="client" autocomplete="off">
 
-    <label class="label" for="jobRef">Job reference</label>
-    <input class="field" type="text" id="jobRef" autocomplete="off">
-
-    <label class="label" for="site">Site</label>
+    <label class="label" for="site">Site address</label>
     <input class="field" type="text" id="site" autocomplete="off">
+
+    <label class="label" for="jobRef">Job reference</label>
+    <input class="field" type="text" id="jobRef" autocomplete="off"
+           autocapitalize="characters" spellcheck="false"
+           style="text-transform:uppercase">
 
     <label class="label" for="technician">Technician</label>
     <input class="field" type="text" id="technician" autocomplete="off">
@@ -2063,7 +2065,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v37';
+  var APP_VERSION = 'v39';
 
   function applyTheme() {
     var pref = state.theme || 'system';
@@ -2271,7 +2273,16 @@
   });
   el.client.addEventListener('input', function () { state.client = this.value; save(); });
   el.jobRef.addEventListener('input', function () {
-    state.jobRef = this.value; renderJobSummary(); save();
+    var upper = this.value.toUpperCase();
+    if (upper !== this.value) {
+      // uppercasing never changes length, so the caret can be put straight back
+      var at = this.selectionStart;
+      this.value = upper;
+      try { this.setSelectionRange(at, at); } catch (e) {}
+    }
+    state.jobRef = upper;
+    renderJobSummary();
+    save();
   });
 
   document.getElementById('portPresets').addEventListener('click', function (e) {
