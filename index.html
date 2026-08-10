@@ -36,7 +36,8 @@
   }
   .form { padding: 16px; }
   .brand { margin-bottom: 16px; }
-  .brandLogo { display: block; width: 100%; max-width: 210px; height: auto; }
+  .brandLogo { display: block; width: 100%; max-width: 340px; height: auto;
+    margin: -6px -6px 0; }
   .brandName {
     font-size: 17px; font-weight: 700; color: #fff; letter-spacing: 0.03em;
     line-height: 1.15;
@@ -216,66 +217,138 @@
   body.printing .container { display: none; }
   body.printing #printRoot { display: block; }
 
-  .rpt-page { padding: 10mm 0; font-size: 9pt; color: #18181b; line-height: 1.45; }
+  .rpt-page {
+    padding: 0; font-size: 9pt; color: #1a1a1c; line-height: 1.5;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
   .rpt-page + .rpt-page { page-break-before: always; }
-  .rpt-brand { display: flex; justify-content: space-between; align-items: flex-start;
-    border-bottom: 0.6pt solid #d4d4d8; padding-bottom: 4mm; margin-bottom: 8mm; }
-  .rpt-co { font-size: 13pt; font-weight: 700; letter-spacing: 0.02em; }
-  .rpt-sub { font-size: 7.5pt; color: #71717a; margin-top: 1mm; }
-  .rpt-contact { font-size: 7.5pt; color: #71717a; text-align: right; line-height: 1.5; }
-  .rpt-h1 { font-size: 15pt; margin: 0 0 3mm; page-break-after: avoid; }
-  .rpt-h2 { font-size: 9pt; margin: 6mm 0 2mm; page-break-after: avoid;
-    break-after: avoid; }
-  .rpt-h2 em { font-style: normal; font-weight: 400; color: #71717a; font-size: 7.5pt;
-    margin-left: 3mm; }
-  .rpt-meta { display: flex; gap: 6mm; margin-bottom: 6mm; }
-  .rpt-meta > div { flex: 1; font-size: 8.5pt; }
-  .rpt-meta span { display: block; font-size: 6.5pt; color: #71717a; letter-spacing: 0.05em; }
-  .rpt-page p { margin: 0 0 3mm; }
-  .rpt-note { font-size: 7.5pt; color: #71717a; margin-top: 6mm; }
+
+  /* letterhead */
+  .rpt-band {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    padding-bottom: 3.5mm; margin-bottom: 0;
+  }
+  .rpt-band img { width: 74mm; height: auto; display: block; }
+  .rpt-band .contact {
+    font-size: 7.2pt; line-height: 1.7; color: #52525b; text-align: right;
+    white-space: nowrap; padding-bottom: 0.5mm;
+  }
+  .rpt-band .contact b { color: #0a0a0a; font-weight: 700; font-size: 8pt; }
+  .rpt-accent {
+    height: 1.1mm; margin: 0 0 7mm;
+    background: linear-gradient(to right, #D2030F 0 62%, #003986 62% 100%);
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+
+  .rpt-h1 {
+    font-size: 17pt; margin: 0 0 4mm; letter-spacing: -0.01em;
+    page-break-after: avoid;
+  }
+  .rpt-h2 {
+    font-size: 8pt; margin: 7mm 0 2mm; text-transform: uppercase;
+    letter-spacing: 0.09em; color: #0a0a0a; page-break-after: avoid; break-after: avoid;
+  }
+  .rpt-h2 em {
+    font-style: normal; font-weight: 400; color: #8a8a93; font-size: 7.2pt;
+    letter-spacing: 0.02em; margin-left: 3mm; text-transform: none;
+  }
+
+  /* client / job / summary strip */
+  .rpt-meta { display: flex; gap: 0; margin-bottom: 7mm; border: 0.5pt solid #dcdce0; }
+  .rpt-meta > div {
+    flex: 1; font-size: 8.5pt; padding: 3mm 4mm;
+    border-left: 0.5pt solid #dcdce0;
+  }
+  .rpt-meta > div:first-child { border-left: none; }
+  .rpt-meta span {
+    display: block; font-size: 6.2pt; color: #8a8a93; letter-spacing: 0.1em;
+    text-transform: uppercase; margin-bottom: 1.2mm;
+  }
+  .rpt-page p { margin: 0 0 3.5mm; }
+  .rpt-note {
+    font-size: 7pt; color: #8a8a93; margin-top: 7mm; padding-top: 3mm;
+    border-top: 0.5pt solid #dcdce0; line-height: 1.6;
+  }
+
+  /* headline counts */
+  .rpt-tiles { display: flex; gap: 3mm; margin-bottom: 6mm; }
+  .rpt-tile {
+    flex: 1; border: 0.5pt solid #dcdce0; padding: 4mm; text-align: center;
+  }
+  .rpt-tile b { display: block; font-size: 21pt; line-height: 1.1; }
+  .rpt-tile span {
+    display: block; font-size: 6.2pt; letter-spacing: 0.1em; text-transform: uppercase;
+    color: #8a8a93; margin-top: 1.5mm;
+  }
+  .rpt-tile.pass b { color: #15803d; }
+  .rpt-tile.fail b { color: #b91c1c; }
 
   .rpt-kv { width: 100%; border-collapse: collapse; }
-  .rpt-kv td { border-bottom: 0.4pt solid #d4d4d8; padding: 2.2mm 0; font-size: 8.5pt;
-    vertical-align: middle; }
-  .rpt-num { text-align: right; width: 20mm; white-space: nowrap; }
+  .rpt-kv td {
+    border-bottom: 0.4pt solid #e7e7ea; padding: 2.6mm 0; font-size: 8.5pt;
+    vertical-align: middle;
+  }
+  .rpt-kv tr:first-child td { border-top: 0.4pt solid #e7e7ea; }
+  .rpt-num { text-align: right; width: 20mm; white-space: nowrap; font-weight: 600; }
 
   .rpt-tbl { width: 100%; border-collapse: collapse; }
-  .rpt-tbl th { font-size: 6.5pt; color: #71717a; text-align: left; font-weight: 400;
-    letter-spacing: 0.05em; border-bottom: 0.5pt solid #18181b; padding: 1.5mm 2mm 1.5mm 0; }
-  .rpt-tbl td { font-size: 7.5pt; padding: 1.5mm 2mm 1.5mm 0;
-    border-bottom: 0.3pt solid #f0f0f1; vertical-align: middle; }
+  .rpt-tbl th {
+    font-size: 6.2pt; color: #52525b; text-align: left; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    background-color: #f2f2f4; padding: 2mm 2.5mm;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .rpt-tbl td {
+    font-size: 7.6pt; padding: 2mm 2.5mm; border-bottom: 0.4pt solid #ececef;
+    vertical-align: middle;
+  }
   .rpt-tbl tr { page-break-inside: avoid; }
-  .rpt-r { text-align: right; padding-right: 0 !important; }
-  .rpt-mono { font-family: ui-monospace, Menlo, monospace; font-size: 7pt; }
+  .rpt-r { text-align: right; }
+  .rpt-mono { font-family: ui-monospace, Menlo, monospace; font-size: 7.2pt; letter-spacing: -0.02em; }
   .rpt-pass { color: #15803d; font-weight: 700; }
   .rpt-fail { color: #b91c1c; font-weight: 700; }
 
-  .rpt-item { page-break-inside: avoid; margin-bottom: 7mm; }
-  .rpt-itemhead { display: flex; align-items: baseline; gap: 3mm; font-size: 9pt;
-    border-bottom: 0.5pt solid #18181b; padding-bottom: 1.5mm; }
+  /* failed item blocks */
+  .rpt-item {
+    page-break-inside: avoid; margin-bottom: 6mm; border: 0.5pt solid #dcdce0;
+    border-left: 1.4mm solid #b91c1c;
+  }
+  .rpt-itemhead {
+    display: flex; align-items: baseline; gap: 3mm; font-size: 9.5pt;
+    padding: 3mm 4mm; background-color: #fafafb; border-bottom: 0.5pt solid #dcdce0;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
   .rpt-itemhead .rpt-r { margin-left: auto; }
-  .rpt-cols { display: flex; gap: 8mm; margin-top: 2mm; }
+  .rpt-cols { display: flex; gap: 6mm; padding: 3mm 4mm 1mm; }
   .rpt-insp { width: 50%; }
   .rpt-detail { width: 50%; }
-  .rpt-dt { margin-bottom: 3mm; font-size: 7.5pt; }
-  .rpt-dt span { display: block; font-size: 6.5pt; color: #71717a; letter-spacing: 0.05em; }
-  .rpt-photos { display: flex; gap: 3mm; flex-wrap: wrap; margin-top: 1mm; }
-  .rpt-photo { width: 42mm; border: 0.4pt solid #d4d4d8; }
+  .rpt-dt { margin-bottom: 3mm; font-size: 7.6pt; }
+  .rpt-dt span {
+    display: block; font-size: 6.2pt; color: #8a8a93; letter-spacing: 0.1em;
+    text-transform: uppercase; margin-bottom: 0.8mm;
+  }
+  .rpt-photos { display: flex; gap: 3mm; flex-wrap: wrap; padding: 0 4mm 4mm; }
+  .rpt-photo { width: 44mm; border: 0.4pt solid #dcdce0; }
+  .rpt-photolab { padding: 0 4mm; }
 
   .rpt-sig { width: 100%; border-collapse: collapse; margin-top: 10mm; }
-  .rpt-sig td { border-bottom: 0.5pt solid #18181b; height: 14mm; vertical-align: top;
-    font-size: 9pt; padding-right: 6mm; width: 33%; }
-  .rpt-sig span { display: block; font-size: 6.5pt; color: #71717a; letter-spacing: 0.05em;
-    margin-bottom: 1mm; }
-
-  @media screen {
-    body.printing { background-color: #fff; }
-    #printRoot .rpt-page { padding: 6mm 12px 24px; }
+  .rpt-sig td {
+    border-bottom: 0.6pt solid #0a0a0a; height: 15mm; vertical-align: top;
+    font-size: 9pt; padding-right: 6mm; width: 33%;
+  }
+  .rpt-sig span {
+    display: block; font-size: 6.2pt; color: #8a8a93; letter-spacing: 0.1em;
+    text-transform: uppercase; margin-bottom: 1.2mm;
   }
 
   @page { size: A4; margin: 14mm; }
+  /* A report is a document: keep it light even when the app is in dark mode. */
+  html[data-theme="dark"] body.printing { background-color: #fff; color: #1a1a1c; }
+  html[data-theme="dark"] #printRoot { background-color: #fff; color: #1a1a1c; }
+
   @media print {
-    body { background: #fff; }
+    body,
+    html[data-theme="dark"] body { background: #fff !important; color: #1a1a1c !important; }
     .rpt-page { padding: 0; }
     .rpt-bar { display: none !important; }
   }
@@ -426,7 +499,7 @@
 
   <div class="header">
     <div class="brand">
-      <img class="brandLogo" src="./logo.png" alt="Test Tag Melbourne">
+      <img class="brandLogo" src="./logo-letterhead-dark.svg" alt="Test Tag Melbourne">
     </div>
     <div class="stats">
       <div class="stat"><span class="statNumber" id="countTotal">0</span><span class="statLabel">Tested</span></div>
@@ -457,9 +530,6 @@
 
     <label class="label" for="calibration">Instrument calibration</label>
     <input class="field" type="text" id="calibration" autocomplete="off">
-
-    <label class="label" for="competency">Competency (optional)</label>
-    <input class="field" type="text" id="competency" autocomplete="off">
 
     <button class="toggleButton" id="newJobBtn">Start new job</button>
   </div>
@@ -632,9 +702,8 @@
     model: '',
     serial: '',
     itemTypes: {},
-    competency: '',
     theme: 'system',
-    instrument: 'Aegis Patrol Pro CZ5001 portable appliance tester',
+    instrument: 'Aegis Patrol Pro CZ5001',
     calibration: 'Jul 2026'
   };
 
@@ -702,7 +771,6 @@
     storageNote: document.getElementById('storageNote'),
     instrument: document.getElementById('instrument'),
     calibration: document.getElementById('calibration'),
-    competency: document.getElementById('competency'),
     reportsCard: document.getElementById('reportsCard')
   };
 
@@ -767,9 +835,11 @@
       if (typeof data.technician === 'string') state.technician = data.technician;
       state.client = data.client || '';
       state.jobRef = data.jobRef || '';
-      if (typeof data.competency === 'string') state.competency = data.competency;
       if (data.theme) state.theme = data.theme;
-      if (data.instrument) state.instrument = data.instrument;
+      if (data.instrument) {
+        // fold the old verbose default forward, but keep anything hand-edited
+        state.instrument = (data.instrument === 'Aegis Patrol Pro CZ5001 portable appliance tester') ? 'Aegis Patrol Pro CZ5001' : data.instrument;
+      }
       if (data.calibration) state.calibration = data.calibration;
     } catch (e) {
       console.error('Load failed', e);
@@ -1203,7 +1273,6 @@
     el.serial.value = state.serial;
     el.instrument.value = state.instrument;
     el.calibration.value = state.calibration;
-    el.competency.value = state.competency;
     var a = [state.make, state.model].filter(Boolean).join(' ');
     el.assetSummary.textContent = a ? '\u2014 ' + a : '';
   }
@@ -1516,12 +1585,13 @@
   function docHead(title, ctx) {
     var fails = state.tests.filter(function (t) { return t.result === 'fail'; }).length;
     return '' +
-      '<div class="rpt-brand">' +
-        '<div><div class="rpt-co">' + esc(COMPANY.name.toUpperCase()) + '</div>' +
-        '<div class="rpt-sub">Safety &#183; Compliance &#183; Peace of mind</div></div>' +
-        '<div class="rpt-contact">' + esc(COMPANY.phone) + '<br>' + esc(COMPANY.web) +
-          '<br>' + esc(COMPANY.address) + '<br>ABN ' + esc(COMPANY.abn) + '</div>' +
+      '<div class="rpt-band">' +
+        '<img src="./logo-letterhead.svg" alt="' + esc(COMPANY.name) + '">' +
+        '<div class="contact"><b>' + esc(COMPANY.phone) + '</b><br>' +
+          esc(COMPANY.web) + '<br>' + esc(COMPANY.address) +
+          '<br>ABN ' + esc(COMPANY.abn) + '</div>' +
       '</div>' +
+      '<div class="rpt-accent"></div>' +
       '<h1 class="rpt-h1">' + esc(title) + '</h1>' +
       '<div class="rpt-meta">' +
         '<div><span>CLIENT</span>' + (esc(ctx.clients[0]) || '&mdash;') +
@@ -1534,13 +1604,9 @@
   }
 
   function instrumentNote() {
-    var comp = (state.competency || '').trim();
     return '<p class="rpt-note">Testing carried out with ' + esc(state.instrument) +
       '. Instrument calibration: ' + esc(state.calibration) +
-      '. Tests performed to the requirements of ' + STANDARD_LONG + '.' +
-      (comp ? ' Testing performed by a competent person as defined in ' + STANDARD +
-              ': ' + esc(comp) + '.' : '') +
-      '</p>';
+      '. Tests performed to the requirements of ' + STANDARD_LONG + '.</p>';
   }
 
   function certificateHTML(ctx) {
@@ -1557,6 +1623,12 @@
     return '<section class="rpt-page">' + docHead('Certificate of Conformance', ctx) +
       '<p>' + esc(where) + ' presented the following equipment for in-service electrical ' +
       'safety inspection and testing during the period <b>' + esc(periodText(ctx)) + '</b>.</p>' +
+
+      '<div class="rpt-tiles">' +
+        '<div class="rpt-tile"><b>' + total + '</b><span>Items tested</span></div>' +
+        '<div class="rpt-tile pass"><b>' + (total - fails) + '</b><span>Passed</span></div>' +
+        '<div class="rpt-tile fail"><b>' + fails + '</b><span>Failed</span></div>' +
+      '</div>' +
 
       '<h2 class="rpt-h2">Electrical appliances and leads</h2>' +
       rows([
@@ -1666,7 +1738,7 @@
               '</tr></thead><tbody>' + insp + '</tbody></table>' +
               '<div class="rpt-detail">' + detail + '</div>' +
             '</div>' +
-            (photos ? '<div class="rpt-dt"><span>PHOTOGRAPHS</span></div>' +
+            (photos ? '<div class="rpt-dt rpt-photolab"><span>Photographs</span></div>' +
                       '<div class="rpt-photos">' + photos + '</div>' : '') +
           '</div>';
         }).join('');
@@ -2188,7 +2260,6 @@
 
   el.instrument.addEventListener('input', function () { state.instrument = this.value; save(); });
   el.calibration.addEventListener('input', function () { state.calibration = this.value; save(); });
-  el.competency.addEventListener('input', function () { state.competency = this.value; save(); });
 
   document.querySelector('.reportRow').addEventListener('click', function (e) {
     var btn = e.target.closest('[data-report]');

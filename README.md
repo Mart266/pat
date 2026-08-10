@@ -9,12 +9,14 @@ Test Tag Melbourne · ABN 36 246 545 097 · 13 Slough St, Deer Park VIC 3023 · 
 
 | File | Purpose |
 |---|---|
-| `index.html` | The whole app — logging, reports, exports |
+| `index.html` | The whole app — logging, reports, exports, settings |
 | `manifest.json` | Lets iOS install it as a home screen app |
 | `sw.js` | Service worker; caches the app so it runs with no reception |
+| `logo-letterhead-dark.svg` | App header artwork |
+| `logo-letterhead.svg` | Report letterhead |
+| `logo-stacked-dark.svg` | Stacked lockup, spare |
 | `icon-192.png`, `icon-512.png` | App icons |
 | `apple-touch-icon.png` | iOS home screen icon |
-| `logo.png` | Header artwork (placeholder — dark background only) |
 
 All files sit in the same folder, at the repo root.
 
@@ -53,6 +55,12 @@ print-ready pages. Choose Print, then save as PDF from the iOS share sheet.
 **Export ZIP** — one file containing the CSV register and every photo, named by asset ID.
 CSV alone is also available.
 
+**Settings** — appearance (system, light or dark), restore from a previously exported CSV,
+storage usage with options to clear photos or remembered item names, and an about line.
+
+Importing a CSV skips records already held, so importing the same file twice is safe.
+Photos are not carried in a CSV, so a restore rebuilds records without their photographs.
+
 ## Storage
 
 Data is held in the browser on that one device. Clearing Safari's website data erases it,
@@ -70,14 +78,11 @@ where you type.
 Changing an icon or `logo.png` also needs the `CACHE_VERSION` bump, and iOS caches the
 home screen icon at install — delete the icon and re-add it to pick up new artwork.
 
-## Branding — outstanding
+## Branding
 
-`logo.png` is a placeholder. It is raster (755px wide) on an opaque black background, so:
-
-- it cannot sit on the white report letterhead, which still uses set type
-- it is too small for large-format print such as vehicle signage
-
-Replacing it with a transparent-background or vector version would resolve both.
+Logos are vector SVG, traced from the supplied artwork. The dark letterhead runs in the app
+header; the light letterhead sits on the reports. Icons are PNG, generated from the stacked
+lockup.
 
 ## Scope
 
