@@ -413,21 +413,37 @@
   }
 
   #toast {
-    position: fixed; left: 12px; right: 12px; bottom: 16px; z-index: 50;
-    padding: 12px 14px; border-radius: 8px; color: #fff; font-size: 14px;
-    font-weight: 600; box-shadow: 0 6px 20px rgba(0,0,0,0.22);
-    transform: translateY(140%); transition: transform 0.22s ease;
-    display: flex; align-items: center; gap: 10px;
+    position: sticky; top: 70px; z-index: 7; width: calc(100% - 24px); box-sizing: border-box;
+    margin: -4px 12px 12px; padding: 14px 16px; border-radius: 10px; color: #fff;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.24); display: none; align-items: center; gap: 12px;
+    overflow: hidden;
   }
-  #toast.show { transform: translateY(0); }
-  #toast.pass { background-color: #15803d; }
-  #toast.fail { background-color: #b91c1c; }
-  #toast .tag { font-family: ui-monospace, Menlo, monospace; font-weight: 700;
-    opacity: 0.9; font-size: 12px; }
+  #toast.show { display: flex; animation: resultBannerIn .2s ease-out; }
+  #toast.pass { background: #15803d; }
+  #toast.fail { background: #b91c1c; }
+  #toast .resultIcon {
+    width: 38px; height: 38px; border-radius: 50%; flex: 0 0 38px;
+    display: grid; place-items: center; background: rgba(255,255,255,.16);
+    font-size: 23px; font-weight: 900; line-height: 1;
+  }
+  #toast .resultCopy { min-width: 0; flex: 1; }
+  #toast .resultTitle { font-size: 18px; line-height: 1.05; font-weight: 900; letter-spacing: .02em; }
+  #toast .resultMeta { margin-top: 4px; font-size: 12px; line-height: 1.25; opacity: .92; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #toast .nextTag {
+    margin-top: 5px; font-size: 11px; font-weight: 700; opacity: .95; text-transform: uppercase; letter-spacing: .04em;
+  }
+  #toast .nextTag strong {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 16px; letter-spacing: .02em;
+    margin-left: 4px; color: #fff;
+  }
   #toast .undo {
-    margin-left: auto; background: rgba(255,255,255,0.16); color: #fff; border: none;
-    border-radius: 5px; padding: 6px 10px; font-size: 12px; font-weight: 600;
+    margin-left: auto; align-self: stretch; background: rgba(255,255,255,0.16); color: #fff; border: 1px solid rgba(255,255,255,.22);
+    border-radius: 7px; padding: 7px 11px; font-size: 12px; font-weight: 800;
     font-family: inherit; cursor: pointer;
+  }
+  @keyframes resultBannerIn {
+    from { opacity: 0; transform: translateY(-8px) scale(.99); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
   }
   .bigButton.locked { opacity: 0.45; pointer-events: none; }
 
@@ -600,6 +616,8 @@
     <strong id="currentTagDisplay">—</strong>
     <span class="ctHint">tap to edit</span>
   </button>
+
+  <div id="toast" role="status" aria-live="polite"></div>
 
   <div class="form" id="form">
     <label class="label" for="appliance">Appliance</label>
@@ -814,8 +832,6 @@
 </div>
 
 <div id="fileHolder" style="position:absolute;width:0;height:0;overflow:hidden"></div>
-
-<div id="toast"></div>
 
 <div id="printRoot"></div>
 
@@ -1801,10 +1817,22 @@
 
   function showToast(test) {
     var el2 = document.getElementById('toast');
+    var passed = test.result === 'pass';
+    var title = passed ? 'ITEM PASSED' : 'ITEM FAILED';
+    var icon = passed ? '&#10003;' : '&#10005;';
+    var meta = [test.tagNumber, test.appliance].filter(Boolean).map(escapeHtml).join(' \u00b7 ');
+    var nextLine = passed && state.tagNumber
+      ? '<div class="nextTag">Next tag <strong>' + escapeHtml(state.tagNumber) + '</strong></div>'
+      : (!passed ? '<div class="nextTag">Complete failure details below</div>' : '');
+
     el2.className = test.result;
     el2.innerHTML =
-      '<span>' + escapeHtml(test.appliance) + ' \u2014 ' + test.result.toUpperCase() + '</span>' +
-      (test.tagNumber ? '<span class="tag">' + escapeHtml(test.tagNumber) + '</span>' : '') +
+      '<span class="resultIcon" aria-hidden="true">' + icon + '</span>' +
+      '<div class="resultCopy">' +
+        '<div class="resultTitle">' + title + '</div>' +
+        (meta ? '<div class="resultMeta">' + meta + '</div>' : '') +
+        nextLine +
+      '</div>' +
       '<button class="undo" id="undoBtn">Undo</button>';
     void el2.offsetWidth;
     el2.classList.add('show');
@@ -1812,7 +1840,7 @@
     document.getElementById('undoBtn').addEventListener('click', undoLast);
 
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { el2.classList.remove('show'); }, 4000);
+    toastTimer = setTimeout(function () { el2.classList.remove('show'); }, passed ? 2200 : 3500);
   }
 
   function undoLast() {
@@ -2537,7 +2565,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v53';
+  var APP_VERSION = 'v54';
 
   function applyTheme() {
     var pref = state.theme || 'system';
