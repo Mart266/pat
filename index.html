@@ -67,6 +67,15 @@
   input.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 600; }
   textarea.field { min-height: 60px; resize: none; }
 
+  .fieldWrap { position: relative; }
+  .fieldWrap .field { padding-right: 40px; }
+  .fieldClear {
+    position: absolute; top: 0; right: 0; width: 38px; height: 41px;
+    border: none; background: none; color: #a1a1aa; font-size: 22px; line-height: 1;
+    cursor: pointer; font-family: inherit; display: none;
+  }
+  .fieldWrap.filled .fieldClear { display: block; }
+  html[data-theme="dark"] .fieldClear { color: #71717a; }
   .chipRow { display: flex; flex-wrap: wrap; gap: 6px; margin-top: -4px; margin-bottom: 14px; }
   .chipRow:empty { display: none; }
   .chip {
@@ -572,7 +581,10 @@
 
   <div class="form" id="form">
     <label class="label" for="appliance">Appliance</label>
-    <input class="field" type="text" id="appliance" autocomplete="off">
+    <div class="fieldWrap">
+      <input class="field" type="text" id="appliance" autocomplete="off">
+      <button class="fieldClear" id="applianceClear" aria-label="Clear appliance">&times;</button>
+    </div>
 
     <div class="chipRow" id="chipRow"></div>
 
@@ -589,6 +601,7 @@
       <button class="typeButton" data-type="Lead">Lead</button>
       <button class="typeButton" data-type="Multi-port">Multi-port</button>
       <button class="typeButton" data-type="Microwave">Microwave</button>
+      <button class="typeButton" data-type="Visual">Visual</button>
     </div>
 
     <div id="portWrap" style="display:none">
@@ -714,6 +727,7 @@
       <h2 class="listTitle">Failed items — follow up</h2>
     </div>
     <div id="followContainer"></div>
+    <button class="toggleButton" id="failMore" style="display:none;border:none;border-top:1px solid #f4f4f5;border-radius:0"></button>
     <div class="storageNote" id="storageNote"></div>
   </div>
 
@@ -734,6 +748,8 @@
 
 </div>
 
+<div id="fileHolder" style="position:absolute;width:0;height:0;overflow:hidden"></div>
+
 <div id="toast"></div>
 
 <div id="printRoot"></div>
@@ -744,7 +760,8 @@
 
   var STORAGE_KEY = 'pat-tests';
   var MAX_REMEMBERED = 200;
-  var MAX_CHIPS = 12;
+  var CHIPS_IDLE = 5;      // most recent, shown when the field is empty
+  var CHIPS_SEARCH = 12;   // matches shown while typing
 
   var state = {
     tests: [],
@@ -783,6 +800,7 @@
   var MW_LIMIT = 5;          // mW/cm2 at 50 mm, AS/NZS 60335.2.25
   var MULTI = 'Multi-port';
   var MICROWAVE = 'Microwave';
+  var VISUAL = 'Visual';
 
   var ACTIONS = [
     '',
@@ -951,8 +969,13 @@
     var items = state.recentItems;
     if (query) {
       items = items.filter(function (i) { return i.toLowerCase().indexOf(query) !== -1; });
+      items = items.slice(0, CHIPS_SEARCH);
+    } else {
+      items = items.slice(0, CHIPS_IDLE);
     }
-    items = items.slice(0, MAX_CHIPS);
+
+    var wrap = document.querySelector('.fieldWrap');
+    if (wrap) wrap.classList.toggle('filled', state.appliance.length > 0);
 
     el.chipRow.innerHTML = items.map(function (item) {
       var active = query === item.toLowerCase() ? ' active' : '';
@@ -1032,6 +1055,7 @@
   function renderConditionalFields() {
     var multi = state.testType === MULTI;
     var mw = state.testType === MICROWAVE;
+    // Visual is inspection only, so neither panel applies
     el.portWrap.style.display = multi ? '' : 'none';
     el.mwWrap.style.display = mw ? '' : 'none';
     if (multi) renderPorts();
@@ -1319,7 +1343,8 @@
     el.followList.style.display = failed.length ? '' : 'none';
     if (!failed.length) { el.followContainer.innerHTML = ''; return; }
 
-    el.followContainer.innerHTML = failed.map(function (t) {
+    var shown = showAllFails ? failed : failed.slice(0, FAILS_VISIBLE);
+    el.followContainer.innerHTML = shown.map(function (t) {
       var done = t.failReason && t.actionTaken;
       var photos = (t.photoIds || []).filter(function (id) { return photoUrls[id]; });
       return '<div class="followItem" data-id="' + t.id + '">' +
@@ -1374,12 +1399,32 @@
     }).join('');
 
     var pc = allPhotoIds().length;
+    var moreBox = document.getElementById('failMore');
+    if (failed.length > FAILS_VISIBLE) {
+      moreBox.style.display = '';
+      moreBox.textContent = showAllFails
+        ? 'Show fewer'
+        : 'Show all ' + failed.length + ' failed items';
+    } else {
+      moreBox.style.display = 'none';
+    }
+
     el.storageNote.textContent = pc
       ? pc + (pc === 1 ? ' photo' : ' photos') + ' stored. Export the zip before clearing them.'
       : 'No photos stored yet.';
     storageEstimate().then(function (est) {
       if (!est || !est.quota || !pc) return;
-      el.storageNote.textContent = pc + (pc === 1 ? ' photo' : ' photos') + ' stored, ' +
+      var moreBox = document.getElementById('failMore');
+    if (failed.length > FAILS_VISIBLE) {
+      moreBox.style.display = '';
+      moreBox.textContent = showAllFails
+        ? 'Show fewer'
+        : 'Show all ' + failed.length + ' failed items';
+    } else {
+      moreBox.style.display = 'none';
+    }
+
+    el.storageNote.textContent = pc + (pc === 1 ? ' photo' : ' photos') + ' stored, ' +
         (est.usage / 1048576).toFixed(1) + ' MB of ' +
         (est.quota / 1048576).toFixed(0) + ' MB used. Export the zip before clearing them.';
     });
@@ -1566,6 +1611,8 @@
   }
 
   var editingId = null;
+  var showAllFails = false;
+  var FAILS_VISIBLE = 3;
   var editDraft = null;
   var submitLock = false;
   var lastLoggedId = null;
@@ -2183,6 +2230,15 @@
 
   window.addEventListener('afterprint', cleanupPrint);
 
+  // Returning from the camera can leave the interface a step behind the store.
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState !== 'visible') return;
+    refreshPhotoUrls().then(function () {
+      renderFollowUp();
+      renderSettings();
+    }).catch(function () {});
+  });
+
   function buildReport(which) {
     if (!state.tests.length) { alert('Nothing to report on yet'); return; }
     // make sure every stored photo has a display URL before rendering
@@ -2214,7 +2270,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v45';
+  var APP_VERSION = 'v46';
 
   function applyTheme() {
     var pref = state.theme || 'system';
@@ -2419,6 +2475,16 @@
   el.appliance.addEventListener('input', function () {
     state.appliance = this.value; renderChips(); predictType(); save();
   });
+
+  document.getElementById('applianceClear').addEventListener('click', function () {
+    state.appliance = '';
+    el.appliance.value = '';
+    typeTouched = false;
+    portsTouched = false;
+    renderChips();
+    el.appliance.focus();
+    save();
+  });
   el.site.addEventListener('input', function () { state.site = this.value; save(); });
   el.technician.addEventListener('input', function () {
     state.technician = this.value; renderJobSummary(); save();
@@ -2537,11 +2603,18 @@
     var add = e.target.closest('[data-photo]');
     if (add) {
       var id = add.getAttribute('data-photo');
+
+      // The input must live in the document. A detached element can be discarded
+      // while the camera has focus on iOS, and its change event then never fires —
+      // which showed up as photos silently not appearing after Done.
+      var holder = document.getElementById('fileHolder');
+      holder.innerHTML = '';
       var input = document.createElement('input');
       input.type = 'file';
       input.accept = 'image/*';
       // no capture attribute: iOS then offers Photo Library / Take Photo / Choose File
       input.setAttribute('multiple', 'multiple');
+      holder.appendChild(input);
       input.addEventListener('change', function () {
         var files = Array.prototype.slice.call(this.files || []);
         if (!files.length) return;
@@ -2644,6 +2717,11 @@
     state.tests.forEach(function (t) { t.photoIds = []; });
     photoClear().catch(function () {});
     renderFollowUp(); renderSettings(); save();
+  });
+
+  document.getElementById('failMore').addEventListener('click', function () {
+    showAllFails = !showAllFails;
+    renderFollowUp();
   });
 
   document.getElementById('itemManage').addEventListener('click', function (e) {
