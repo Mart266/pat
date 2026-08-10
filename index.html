@@ -766,7 +766,7 @@
     itemPorts: {},
     theme: 'system',
     instrument: 'Aegis Patrol Pro CZ5001',
-    calibration: 'Jul 2026'
+    calibration: '10 Aug 2026, internal verification cert CR-INT-20260810-001'
   };
 
   var COMPANY = {
@@ -912,7 +912,9 @@
         // fold the old verbose default forward, but keep anything hand-edited
         state.instrument = (data.instrument === 'Aegis Patrol Pro CZ5001 portable appliance tester') ? 'Aegis Patrol Pro CZ5001' : data.instrument;
       }
-      if (data.calibration) state.calibration = data.calibration;
+      if (data.calibration) {
+        state.calibration = (data.calibration === 'Jul 2026') ? '10 Aug 2026, internal verification cert CR-INT-20260810-001' : data.calibration;
+      }
     } catch (e) {
       console.error('Load failed', e);
     }
@@ -1174,7 +1176,7 @@
 
   var PHOTO_DB = 'ttm-photos';
   var PHOTO_STORE = 'photos';
-  var MAX_PHOTOS = 8;
+  var MAX_PHOTOS = 12;
   var dbPromise = null;
   var photoUrls = {};        // photoId -> object URL, for display only
 
@@ -1283,7 +1285,7 @@
     reader.onload = function () {
       var img = new Image();
       img.onload = function () {
-        var max = 1000;
+        var max = 1600;
         var scale = Math.min(1, max / Math.max(img.width, img.height));
         var w = Math.round(img.width * scale);
         var h = Math.round(img.height * scale);
@@ -1291,10 +1293,10 @@
         c.width = w; c.height = h;
         c.getContext('2d').drawImage(img, 0, 0, w, h);
         if (c.toBlob) {
-          c.toBlob(function (blob) { cb(blob); }, 'image/jpeg', 0.55);
+          c.toBlob(function (blob) { cb(blob); }, 'image/jpeg', 0.7);
         } else {
           // older WebKit: fall back through the data URL
-          cb(new Blob([dataUrlBytes(c.toDataURL('image/jpeg', 0.55))],
+          cb(new Blob([dataUrlBytes(c.toDataURL('image/jpeg', 0.7))],
                       { type: 'image/jpeg' }));
         }
       };
@@ -2204,7 +2206,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v41';
+  var APP_VERSION = 'v43';
 
   function applyTheme() {
     var pref = state.theme || 'system';
