@@ -382,6 +382,11 @@
   .rpt-photo { width: 44mm; border: 0.4pt solid #dcdce0; }
   .rpt-photolab { padding: 0 4mm; }
 
+  .signaturePadWrap { margin-top:10px; border:1px solid var(--border); border-radius:14px; overflow:hidden; background:#fff; }
+  #signaturePad { display:block; width:100%; height:150px; touch-action:none; cursor:crosshair; background:transparent; }
+  .signaturePreview { margin-top:10px; min-height:58px; display:flex; align-items:center; justify-content:flex-start; padding:8px 10px; border:1px dashed var(--border); border-radius:12px; background:#fff; }
+  .signaturePreview img { display:block; max-width:220px; max-height:64px; object-fit:contain; }
+  .signaturePreview.empty { color:#777; font-size:13px; }
   .rpt-signature-img { display:block; max-width:150px; max-height:52px; object-fit:contain; margin-top:4px; }
   .rpt-sig { width: 100%; border-collapse: collapse; margin-top: 10mm; }
   .rpt-sig td {
@@ -777,11 +782,17 @@
 
     <div class="settingRow">
       <div class="settingLabel">Report signature</div>
-      <div class="settingHint">Choose a transparent PNG of your signature. It will be stamped into the signed field on generated reports.</div>
-      <div class="dataBtns">
-        <button id="signatureBtn">Choose PNG</button>
-        <button id="signatureClearBtn">Clear signature</button>
+      <div class="settingHint">Sign below with your finger or stylus, then save it. The saved signature is stamped into generated reports until you replace or clear it.</div>
+      <div class="signaturePadWrap">
+        <canvas id="signaturePad" width="640" height="220" aria-label="Signature pad"></canvas>
       </div>
+      <div class="dataBtns">
+        <button id="signaturePadClearBtn">Clear pad</button>
+        <button id="signaturePadSaveBtn" class="primary">Save signature</button>
+        <button id="signatureBtn">Upload PNG</button>
+        <button id="signatureClearBtn">Remove saved signature</button>
+      </div>
+      <div class="signaturePreview empty" id="signaturePreview">No saved signature</div>
       <div class="settingHint" id="signatureStatus">No signature stored.</div>
     </div>
 
@@ -2526,7 +2537,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v52';
+  var APP_VERSION = 'v53';
 
   function applyTheme() {
     var pref = state.theme || 'system';
@@ -2625,6 +2636,16 @@
     if (sigStatus) sigStatus.textContent = state.signatureDataUrl
       ? 'Signature stored' + (state.signatureName ? ': ' + state.signatureName : '.')
       : 'No signature stored.';
+    var sigPreview = document.getElementById('signaturePreview');
+    if (sigPreview) {
+      if (state.signatureDataUrl) {
+        sigPreview.classList.remove('empty');
+        sigPreview.innerHTML = '<img src="' + state.signatureDataUrl + '" alt="Saved signature">';
+      } else {
+        sigPreview.classList.add('empty');
+        sigPreview.textContent = 'No saved signature';
+      }
+    }
     renderItemManage();
   }
 
@@ -3124,6 +3145,104 @@
     });
     input.click();
   });
+
+  // Built-in signature pad. The canvas stays transparent so report stamps remain clean.
+  (function setupSignaturePad() {
+    var canvas = document.getElementById('signaturePad');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var drawing = false;
+    var hasInk = false;
+    var lastX = 0, lastY = 0;
+
+    function point(ev) {
+      var r = canvas.getBoundingClientRect();
+      return {
+        x: (ev.clientX - r.left) * (canvas.width / r.width),
+        y: (ev.clientY - r.top) * (canvas.height / r.height)
+      };
+    }
+
+    function resetPad() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      hasInk = false;
+    }
+
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#111111';
+    ctx.lineWidth = 4.2;
+
+    canvas.addEventListener('pointerdown', function (ev) {
+      ev.preventDefault();
+      drawing = true;
+      hasInk = true;
+      if (canvas.setPointerCapture) canvas.setPointerCapture(ev.pointerId);
+      var p = point(ev);
+      lastX = p.x; lastY = p.y;
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(lastX + 0.01, lastY + 0.01);
+      ctx.stroke();
+    });
+
+    canvas.addEventListener('pointermove', function (ev) {
+      if (!drawing) return;
+      ev.preventDefault();
+      var p = point(ev);
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+      lastX = p.x; lastY = p.y;
+    });
+
+    function stop(ev) {
+      if (!drawing) return;
+      drawing = false;
+      try { if (canvas.releasePointerCapture && ev && ev.pointerId !== undefined) canvas.releasePointerCapture(ev.pointerId); } catch (e) {}
+    }
+    canvas.addEventListener('pointerup', stop);
+    canvas.addEventListener('pointercancel', stop);
+    canvas.addEventListener('pointerleave', function (ev) { if (ev.buttons === 0) stop(ev); });
+
+    function croppedSignatureDataUrl() {
+      var img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      var d = img.data, minX = canvas.width, minY = canvas.height, maxX = -1, maxY = -1;
+      for (var y = 0; y < canvas.height; y++) {
+        for (var x = 0; x < canvas.width; x++) {
+          if (d[(y * canvas.width + x) * 4 + 3] > 8) {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+        }
+      }
+      if (maxX < 0) return '';
+      var pad = 14;
+      minX = Math.max(0, minX - pad); minY = Math.max(0, minY - pad);
+      maxX = Math.min(canvas.width - 1, maxX + pad); maxY = Math.min(canvas.height - 1, maxY + pad);
+      var w = maxX - minX + 1, h = maxY - minY + 1;
+      var out = document.createElement('canvas');
+      out.width = w; out.height = h;
+      out.getContext('2d').drawImage(canvas, minX, minY, w, h, 0, 0, w, h);
+      return out.toDataURL('image/png');
+    }
+
+    document.getElementById('signaturePadClearBtn').addEventListener('click', resetPad);
+    document.getElementById('signaturePadSaveBtn').addEventListener('click', function () {
+      if (!hasInk) { alert('Sign in the box first.'); return; }
+      var dataUrl = croppedSignatureDataUrl();
+      if (!dataUrl) { alert('Sign in the box first.'); return; }
+      state.signatureDataUrl = dataUrl;
+      state.signatureName = 'Signed in app';
+      save();
+      renderSettings();
+      resetPad();
+      toast('Signature saved');
+    });
+  })();
 
   document.getElementById('signatureBtn').addEventListener('click', function () {
     var holder = document.getElementById('fileHolder');
