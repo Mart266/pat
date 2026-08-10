@@ -1,0 +1,13 @@
+{
+  "company": {
+    "name": "Your business name",
+    "abn": "00 000 000 000",
+    "phone": "0400 000 000",
+    "web": "example.com.au",
+    "address": "Street, Suburb STATE 0000"
+  },
+  "instrument": {
+    "description": "Aegis Patrol Pro CZ5001",
+    "calibration": "Jul 2026"
+  }
+}
