@@ -899,6 +899,8 @@
     'Other'
   ];
 
+  var ALL_TYPES = ['Class 1', 'Class 2', 'Lead', MULTI, MICROWAVE, 'Visual', '3 Phase'];
+
   var INSPECTION_ITEMS = [
     'Cover / Guards', 'Flexible cord', 'Plugs', 'Controls', 'Safety Devices',
     'Accessories', 'Max Load Label', 'Ventilation', 'Outlet Sockets', 'Connectors'
@@ -1667,11 +1669,27 @@
 
         '<label class="label">Test</label>' +
         '<div class="editRow">' +
-          ['Class 1', 'Class 2', 'Lead'].map(function (ty) {
+          ALL_TYPES.map(function (ty) {
             return '<button data-etype="' + ty + '" class="' +
               (t.testType === ty ? 'on' : '') + '">' + ty + '</button>';
           }).join('') +
         '</div>' +
+
+        ((t.testType === MULTI)
+          ? '<label class="label">Outlets on this device</label>' +
+            '<div class="editRow">' +
+              [2, 4, 6, 8].map(function (n) {
+                return '<button data-eports="' + n + '" class="' +
+                  (Number(t.portCount) === n ? 'on' : '') + '">' + n + '</button>';
+              }).join('') +
+            '</div>'
+          : '') +
+
+        ((t.testType === MICROWAVE)
+          ? '<label class="label">Leakage reading, mW/cm\u00b2</label>' +
+            '<input class="field" data-e="leakage" inputmode="decimal" value="' +
+            escapeHtml(t.leakage || '') + '">'
+          : '') +
 
         '<label class="label">Result</label>' +
         '<div class="editRow">' +
@@ -1704,7 +1722,7 @@
   function captureDraftFields() {
     if (!editDraft) return;
     var wrap = el.testsContainer;
-    ['appliance', 'location', 'tagNumber', 'notes'].forEach(function (name) {
+    ['appliance', 'location', 'tagNumber', 'notes', 'leakage'].forEach(function (name) {
       var f = wrap.querySelector('[data-e="' + name + '"]');
       if (f) editDraft[name] = f.value;
     });
@@ -1750,6 +1768,17 @@
         t.nextTestDisplay = '';
       }
     }
+
+    if (t.testType === MULTI) {
+      t.portCount = Number(editDraft.portCount) || 4;
+      t.failedPorts = (t.failedPorts || []).filter(function (n) { return n <= t.portCount; });
+      state.itemPorts[newName.toLowerCase()] = t.portCount;
+    } else {
+      t.portCount = null;
+      t.failedPorts = [];
+    }
+
+    t.leakage = (t.testType === MICROWAVE) ? String(editDraft.leakage || '').trim() : '';
 
     t.polarity = t.testType === 'Lead' ? (t.result === 'pass' ? 'Pass' : 'Fail') : '';
     state.itemTypes[newName.toLowerCase()] = t.testType;
@@ -2573,7 +2602,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v55';
+  var APP_VERSION = 'v56';
 
   function applyTheme() {
     var pref = state.theme || 'system';
@@ -3276,7 +3305,7 @@
       save();
       renderSettings();
       resetPad();
-      toast('Signature saved');
+      alert('Signature saved. It will be stamped on your reports.');
     });
   })();
 
@@ -3453,12 +3482,33 @@
     if (saveBtn) { saveEdit(Number(saveBtn.getAttribute('data-esave'))); return; }
 
     // Toggle in place rather than re-rendering, so typed edits are not discarded.
+    var ep = e.target.closest('[data-eports]');
+    if (ep && editDraft) {
+      editDraft.portCount = Number(ep.getAttribute('data-eports'));
+      el.testsContainer.querySelectorAll('[data-eports]').forEach(function (x) {
+        x.classList.toggle('on',
+          Number(x.getAttribute('data-eports')) === Number(editDraft.portCount));
+      });
+      return;
+    }
+
     var ty = e.target.closest('[data-etype]');
     if (ty && editDraft) {
+      captureDraftFields();
+      var was = editDraft.testType;
       editDraft.testType = ty.getAttribute('data-etype');
-      el.testsContainer.querySelectorAll('[data-etype]').forEach(function (b) {
-        b.classList.toggle('on', b.getAttribute('data-etype') === editDraft.testType);
-      });
+      if (editDraft.testType === MULTI && !Number(editDraft.portCount)) {
+        editDraft.portCount = 4;
+      }
+      // the extra fields differ per type, so redraw rather than just restyle
+      if (was === MULTI || editDraft.testType === MULTI ||
+          was === MICROWAVE || editDraft.testType === MICROWAVE) {
+        renderList();
+      } else {
+        el.testsContainer.querySelectorAll('[data-etype]').forEach(function (b) {
+          b.classList.toggle('on', b.getAttribute('data-etype') === editDraft.testType);
+        });
+      }
       return;
     }
 
