@@ -5,8 +5,9 @@ Test Tag Melbourne — test and tag report generator.
 Takes the ZIP (or bare CSV) exported by the PAT Logger and produces:
   1. Certificate of Conformance      (PDF, 1 page)
   2. Concise Test Report             (PDF, grouped by area)
-  3. Fail Report                     (PDF, with photos, only if failures exist)
-  4. Detailed Test Register          (XLSX)
+  3. Detailed Test Report            (PDF, per-item test detail)
+  4. Fail Report                     (PDF, with photos, only if failures exist)
+  5. Detailed Test Register          (XLSX)
 
 Usage:
     python generate_reports.py <export.zip | export.csv> [output_dir]
@@ -453,7 +454,107 @@ def concise(path, rows, ctx):
     doc.build(story)
 
 
-# --------------------------------------------------------- 3. fail report
+# --------------------------------------------------------- 3. detailed report
+
+def detailed_report(path, rows, ctx):
+    st = styles()
+    doc = ReportDoc(path, "Test and Tag — Detailed Test Report", ctx)
+    W = doc.width
+    story = [Paragraph("Detailed Test Report", st["h1"]),
+             meta_block(ctx, rows, st, W)]
+
+    for area, items in by_area(rows).items():
+        story.append(Paragraph(area.upper(), st["h2"]))
+        for r in items:
+            failed = is_fail(r)
+            asset = r.get("Description", "")
+            tag = r.get("Asset ID", "")
+
+            hdr = Table([[
+                Paragraph('<b>%s</b>&nbsp;&nbsp;<font size="7.5" color="#71717a" face="Courier">%s</font>'
+                          % (asset, tag), st["body"]),
+                Paragraph('<para align="right"><b><font color="%s">%s</font></b></para>'
+                          % ("#b91c1c" if failed else "#15803d", "FAIL" if failed else "PASS"), st["body"]),
+            ]], colWidths=[W * 0.78, W * 0.22])
+            hdr.setStyle(TableStyle([
+                ("LEFTPADDING", (0, 0), (-1, -1), 0),
+                ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 1.5 * mm),
+                ("LINEBELOW", (0, 0), (-1, -1), 0.5, INK),
+            ]))
+
+            details = [
+                ("Test type", r.get("Test Type", "")),
+                ("Location", r.get("Location", "")),
+                ("Test date", r.get("Test Date", "")),
+                ("Next test", r.get("Next Test Date", "")),
+                ("Polarity", r.get("Polarity", "")),
+            ]
+            if (r.get("Outlets") or "").strip():
+                details.append(("Outlets tested", r.get("Outlets", "")))
+            if (r.get("Leakage mW/cm2") or "").strip():
+                details.append(("Microwave leakage", "%s mW/cm²" % r.get("Leakage mW/cm2", "")))
+
+            sample = (r.get("Sample Value") or r.get("Earth Continuity Value (Ω)") or "").strip()
+            if sample:
+                vals = [v.strip() for v in sample.split("|") if v.strip()]
+                if len(vals) > 1:
+                    for n, v in enumerate(vals, start=1):
+                        details.append(("Outlet %d sample value" % n, v))
+                else:
+                    details.append(("Sample value", sample))
+
+            ddata = [[Paragraph('<font size="6.5" color="#71717a">TEST DETAIL</font>', st["cell"]),
+                      Paragraph('<para align="right"><font size="6.5" color="#71717a">VALUE</font></para>', st["cell"])]]
+            for label, value in details:
+                ddata.append([Paragraph(label, st["cell"]),
+                              Paragraph('<para align="right">%s</para>' % (value or "—"), st["cell"])])
+            dt = Table(ddata, colWidths=[W * 0.30, W * 0.20], hAlign="LEFT")
+            dt.setStyle(TableStyle([
+                ("LINEBELOW", (0, 0), (-1, 0), 0.4, LINE),
+                ("LINEBELOW", (0, 1), (-1, -2), 0.3, FAINT),
+                ("TOPPADDING", (0, 0), (-1, -1), 1.1 * mm),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 1.1 * mm),
+                ("LEFTPADDING", (0, 0), (0, -1), 0),
+                ("RIGHTPADDING", (-1, 0), (-1, -1), 0),
+            ]))
+
+            failed_items = [i.strip() for i in (r.get("Failed Inspection Items") or "").split(";") if i.strip()]
+            idata = [[Paragraph('<font size="6.5" color="#71717a">INSPECTION ITEM</font>', st["cell"]),
+                      Paragraph('<para align="right"><font size="6.5" color="#71717a">RESULT</font></para>', st["cell"])]]
+            istyle = [
+                ("LINEBELOW", (0, 0), (-1, 0), 0.4, LINE),
+                ("LINEBELOW", (0, 1), (-1, -2), 0.3, FAINT),
+                ("TOPPADDING", (0, 0), (-1, -1), 1.1 * mm),
+                ("BOTTOMPADDING", (0, 0), (-1, -1), 1.1 * mm),
+                ("LEFTPADDING", (0, 0), (0, -1), 0),
+                ("RIGHTPADDING", (-1, 0), (-1, -1), 0),
+            ]
+            for i, item in enumerate(INSPECTION_ITEMS, start=1):
+                value = (r.get(item) or "").strip() or ("Fail" if item in failed_items else "Pass")
+                bad = value.lower() == "fail" or item in failed_items
+                idata.append([Paragraph(item, st["cell"]),
+                              Paragraph('<para align="right"><b>%s</b></para>' % value, st["cell"])])
+                istyle.append(("TEXTCOLOR", (-1, i), (-1, i), FAIL_C if bad else PASS_C))
+            it = Table(idata, colWidths=[W * 0.36, W * 0.14], hAlign="LEFT")
+            it.setStyle(TableStyle(istyle))
+
+            body = Table([[dt, it]], colWidths=[W * 0.5, W * 0.5], hAlign="LEFT")
+            body.setStyle(TableStyle([
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ("LEFTPADDING", (0, 0), (0, 0), 0),
+                ("RIGHTPADDING", (-1, 0), (-1, 0), 0),
+                ("LEFTPADDING", (-1, 0), (-1, 0), 5 * mm),
+                ("TOPPADDING", (0, 0), (-1, -1), 2 * mm),
+            ]))
+
+            story.append(KeepTogether([hdr, body, Spacer(1, 5 * mm)]))
+
+    story.append(instrument_note(st))
+    doc.build(story)
+
+
+# --------------------------------------------------------- 4. fail report
 
 def fail_report(path, rows, ctx, photos):
     failures = [r for r in rows if is_fail(r)]
@@ -583,7 +684,7 @@ def fail_report(path, rows, ctx, photos):
     return True
 
 
-# --------------------------------------------------------- 4. xlsx register
+# --------------------------------------------------------- 5. xlsx register
 
 def register(path, rows):
     from openpyxl import Workbook
@@ -664,6 +765,10 @@ def main():
 
     p = os.path.join(out_dir, "%s - Concise Test Report.pdf" % base)
     concise(p, rows, ctx)
+    produced.append(p)
+
+    p = os.path.join(out_dir, "%s - Detailed Test Report.pdf" % base)
+    detailed_report(p, rows, ctx)
     produced.append(p)
 
     p = os.path.join(out_dir, "%s - Fail Report.pdf" % base)

@@ -105,3 +105,8 @@ The app records what the tester decides. It does not measure anything, does not 
 pass or fail, and is not a substitute for the visual inspection and testing required under
 AS/NZS 3760. Leakage current testing requires mains power; RCD trip-time testing and
 microwave leakage testing are outside the capability of the Aegis Patrol Pro CZ5001.
+
+
+### v63
+- Multi-port sample values now generate one value per outlet in CSV exports.
+- Added an in-app Detailed Test Report with per-item inspection details and per-outlet sample values for multi-port equipment.
