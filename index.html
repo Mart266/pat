@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-<>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -2608,7 +2607,7 @@
             var vals = values.split(' | ');
             if (t.testType === MULTI && vals.length > 1) {
               valueRows = vals.map(function (v, i) {
-                return '<tr><td>Outlet ' + (i + 1) + ' Earth Continuity Result</td><td class="rpt-r rpt-mono">' + esc(v) + '</td></tr>';
+                return '<tr><td>Outlet ' + (i + 1) + ' Earth Continuity Result</td><td class="rpt-r rpt-mono">' + esc(v) + ' Ω</td></tr>';
               }).join('');
             } else {
               valueRows = '<tr><td>Earth Continuity Result</td><td class="rpt-r rpt-mono">' + esc(values) + ' Ω</td></tr>';
