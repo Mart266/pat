@@ -3067,7 +3067,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v71';
+  var APP_VERSION = 'v72';
 
   function applyTheme() {
     var pref = state.theme || 'system';
@@ -3363,7 +3363,7 @@
       });
 
       var sigRestored = false;
-      if (sig && !state.signatureDataUrl) {
+      if (sig) {
         try {
           state.signatureDataUrl = bytesToDataUrl(sig.bytes,
             /\.png$/i.test(sig.name) ? 'image/png' : 'image/jpeg');
