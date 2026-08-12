@@ -2434,14 +2434,56 @@
              'PAT-Tests-' + stamp() + '.csv');
   }
 
-  function buildZipExport() {
-    if (!state.tests.length) return Promise.reject(new Error('Nothing to export yet'));
+  // Keep the original v71 export path untouched. On iPhone this is the reliable
+  // download/share flow and must not depend on clipboard support.
+  function exportZip() {
+    if (!state.tests.length) { alert('Nothing to export yet'); return; }
 
     var base = 'PAT-' + safeName(state.jobRef || state.site || 'Tests') + '-' + stamp();
     var files = [{ name: base + '.csv', bytes: strBytes('\ufeff' + buildCSV()) }];
 
-    // Gather photo blobs first, then assemble one Blob that can be downloaded or copied.
+    // gather the photo blobs first, then assemble
     var jobs = [];
+    state.tests.forEach(function (t) {
+      (t.photoIds || []).forEach(function (id, i) {
+        jobs.push(photoGet(id).then(function (blob) {
+          if (!blob) return null;
+          return blob.arrayBuffer().then(function (buf) {
+            return {
+              name: 'photos/' + safeName(t.tagNumber || t.appliance) + '-' + (i + 1) + '.jpg',
+              bytes: new Uint8Array(buf)
+            };
+          });
+        }).catch(function () { return null; }));
+      });
+    });
+
+    Promise.all(jobs).then(function (results) {
+      results.forEach(function (f) { if (f) files.push(f); });
+
+      // travel the signature with the export so a restore does not need re-signing
+      if (state.signatureDataUrl) {
+        try {
+          files.push({ name: 'signature.png', bytes: dataUrlBytes(state.signatureDataUrl) });
+        } catch (e) { console.error('signature not added to zip', e); }
+      }
+      var parts = makeZip(files);
+      download(new Blob(parts, { type: 'application/zip' }), base + '.zip');
+    }).catch(function (e) {
+      console.error(e);
+      alert('Could not build the zip. Export the CSV instead.');
+    });
+  }
+
+  // Separate ZIP builder used only by the experimental clipboard button. Keeping this
+  // separate ensures Copy ZIP cannot change the proven Export ZIP behaviour above.
+  function buildZipForClipboard() {
+    if (!state.tests.length) return Promise.reject(new Error('Nothing to export yet'));
+
+    var base = 'PAT-' + safeName(state.jobRef || state.site || 'Tests') + '-' + stamp();
+    var files = [{ name: base + '.csv', bytes: strBytes('\ufeff' + buildCSV()) }];
+    var jobs = [];
+
     state.tests.forEach(function (t) {
       (t.photoIds || []).forEach(function (id, i) {
         jobs.push(photoGet(id).then(function (blob) {
@@ -2458,32 +2500,20 @@
 
     return Promise.all(jobs).then(function (results) {
       results.forEach(function (f) { if (f) files.push(f); });
-
-      // Travel the signature with the export so a restore does not need re-signing.
       if (state.signatureDataUrl) {
         try {
           files.push({ name: 'signature.png', bytes: dataUrlBytes(state.signatureDataUrl) });
-        } catch (e) { console.error('signature not added to zip', e); }
+        } catch (e) { console.error('signature not added to clipboard zip', e); }
       }
-      var blob = new Blob(makeZip(files), { type: 'application/zip' });
-      return { blob: blob, filename: base + '.zip' };
+      return {
+        blob: new Blob(makeZip(files), { type: 'application/zip' }),
+        filename: base + '.zip'
+      };
     });
   }
 
-  function exportZip() {
-    if (!state.tests.length) { alert('Nothing to export yet'); return; }
-    buildZipExport().then(function (pkg) {
-      download(pkg.blob, pkg.filename);
-    }).catch(function (e) {
-      console.error(e);
-      alert('Could not build the zip. Export the CSV instead.');
-    });
-  }
-
-  // Clipboard support for binary files varies by browser. Try a normal ZIP MIME first
-  // (best chance of pasting into another app), then Chromium's custom web MIME which
-  // still gives reliable logger-to-logger copy/paste where native ZIP clipboard writes
-  // are blocked.
+  // Clipboard support for binary files varies by browser. This remains experimental and
+  // deliberately does not share code with Export ZIP.
   function copyZip() {
     if (!state.tests.length) { alert('Nothing to copy yet'); return; }
     if (!navigator.clipboard || !navigator.clipboard.write || typeof ClipboardItem === 'undefined') {
@@ -2491,7 +2521,7 @@
       return;
     }
 
-    buildZipExport().then(function (pkg) {
+    buildZipForClipboard().then(function (pkg) {
       var attempts = [
         { type: 'application/zip', otherApps: true },
         { type: 'web application/zip', otherApps: false }
@@ -3126,7 +3156,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v72';
+  var APP_VERSION = 'v73';
 
   function applyTheme() {
     var pref = state.theme || 'system';
