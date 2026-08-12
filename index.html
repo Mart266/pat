@@ -1231,16 +1231,34 @@
     }
   }
 
+  // Resolve outlet count for both current and legacy Multi-port records.
+  // Older exports did not always store Outlets even though the logger's default
+  // Multi-port selection was 4. Preserve explicit data first, infer obvious
+  // appliance names second, then use that original 4-outlet default.
+  function effectivePortCount(t) {
+    if (!t || t.testType !== MULTI) return 0;
+    var stored = Number(t.portCount);
+    if (isFinite(stored) && stored > 0) return Math.max(1, Math.min(24, stored));
+
+    var name = String(t.appliance || '').toLowerCase();
+    var named = name.match(/\b(2|4|6|8|10|12|16|20|24)\s*(?:way|outlets?|ports?)\b/i);
+    if (named) return Number(named[1]);
+    if (/\bdouble\s+adap(?:ter|tor)\b/i.test(name)) return 2;
+    return 4;
+  }
+
   // A multi-port device counts as one test per outlet, so the reports tally
   // the work actually performed rather than the number of items handled.
   function testUnits(t) {
-    return (t.testType === MULTI && t.portCount) ? Number(t.portCount) : 1;
+    var n = effectivePortCount(t);
+    return n || 1;
   }
   function failedUnits(t) {
-    if (t.testType === MULTI && t.portCount) {
+    var n = effectivePortCount(t);
+    if (n) {
       if (t.result !== 'fail') return 0;
       // until specific outlets are recorded, assume the whole device failed
-      return (t.failedPorts || []).length || Number(t.portCount);
+      return (t.failedPorts || []).length || n;
     }
     return t.result === 'fail' ? 1 : 0;
   }
@@ -1267,14 +1285,14 @@
   }
 
   function portSummary(t) {
-    var n = Number(t.portCount) || 0;
+    var n = effectivePortCount(t);
     var f = (t.failedPorts || []).length;
     if (!f) return 'None marked \u2014 counted as all ' + n + ' outlets failed.';
     return f + ' of ' + n + ' outlets failed: ' + t.failedPorts.join(', ') + '.';
   }
 
   function portChips(t) {
-    var n = Number(t.portCount) || 0;
+    var n = effectivePortCount(t);
     var failed = t.failedPorts || [];
     var html = '';
     for (var i = 1; i <= n; i++) {
@@ -1612,7 +1630,7 @@
             ? '<span class="failBadge">' + escapeHtml(t.failedItems.join(', ')) + '</span>' : '') +
         '</div>' +
         '<div class="followBody" id="fb-' + t.id + '">' +
-          ((t.testType === MULTI && Number(t.portCount))
+          ((t.testType === MULTI && effectivePortCount(t))
             ? '<label class="label">Outlets \u2014 mark any that failed</label>' +
               '<div class="portRow">' + portChips(t) + '</div>' +
               '<div class="settingHint" id="ps-' + t.id + '">' +
@@ -1748,8 +1766,8 @@
             (place ? '<span>' + escapeHtml(place) + '</span>' : '') +
             '<span>' + escapeHtml(t.date + ' ' + t.time) + '</span>' +
             (t.retestMonths ? '<span>' + t.retestMonths + 'mth \u2192 ' + escapeHtml(t.nextTestDisplay) + '</span>' : '') +
-            (t.testType === MULTI && t.portCount
-              ? '<span>' + t.portCount + ' outlets' +
+            (t.testType === MULTI
+              ? '<span>' + effectivePortCount(t) + ' outlets' +
                 ((t.failedPorts || []).length ? ', ' + t.failedPorts.length + ' failed' : '') +
                 '</span>' : '') +
             (t.testType === MICROWAVE && t.leakage !== ''
@@ -1798,7 +1816,7 @@
             '<div class="editRow">' +
               [2, 4, 6, 8].map(function (n) {
                 return '<button data-eports="' + n + '" class="' +
-                  (Number(t.portCount) === n ? 'on' : '') + '">' + n + '</button>';
+                  (effectivePortCount(t) === n ? 'on' : '') + '">' + n + '</button>';
               }).join('') +
             '</div>'
           : '') +
@@ -2178,8 +2196,7 @@
   function sampleValues(t) {
     var entered = t.earthContinuity !== undefined && t.earthContinuity !== null &&
                   String(t.earthContinuity).trim() !== '';
-    var multiCount = (t.testType === MULTI && Number(t.portCount))
-      ? Math.max(1, Math.min(24, Number(t.portCount))) : 0;
+    var multiCount = effectivePortCount(t);
 
     if (entered) {
       var raw = String(t.earthContinuity).trim();
@@ -2257,7 +2274,7 @@
           var v = sampleValues(t);
           return Array.isArray(v) ? v.join('; ') : v;
         })(),
-        t.portCount || '', (t.failedPorts || []).join('; '), t.leakage || '',
+        (t.testType === MULTI ? effectivePortCount(t) : ''), (t.failedPorts || []).join('; '), t.leakage || '',
         failed.length ? 'Fail' : 'Pass'
       ].concat(perItem).concat([
         failed.length ? failed.join('; ') : '',
@@ -2635,8 +2652,9 @@
         items.map(function (t) {
           var bad = t.result === 'fail';
           var extra = '';
-          if (t.testType === MULTI && t.portCount) {
-            extra = '<br><span style="font-size:6.6pt;color:#8a8a93">' + t.portCount +
+          var ports = effectivePortCount(t);
+          if (ports) {
+            extra = '<br><span style="font-size:6.6pt;color:#8a8a93">' + ports +
               ' outlets tested' +
               (bad ? ((t.failedPorts || []).length
                         ? ' \u00b7 failed: ' + t.failedPorts.join(', ')
@@ -2646,8 +2664,8 @@
             extra = '<br><span style="font-size:6.6pt;color:#8a8a93">leakage ' +
               esc(t.leakage) + ' mW/cm\u00b2</span>';
           }
-          var resultText = (t.testType === MULTI && t.portCount)
-            ? (bad ? 'Fail ' + failedUnits(t) + ' of ' + t.portCount : 'Pass ' + t.portCount)
+          var resultText = ports
+            ? (bad ? 'Fail ' + failedUnits(t) + ' of ' + ports : 'Pass ' + ports)
             : (bad ? 'Fail' : 'Pass');
           return '<tr>' +
             '<td class="rpt-mono">' + esc(t.tagNumber) + '</td>' +
@@ -2744,7 +2762,7 @@
             sub.push(esc([t.make, t.model].filter(Boolean).join(' ')));
           }
           if ((t.serial || '').trim()) sub.push('S/N ' + esc(t.serial));
-          if (t.testType === MULTI && t.portCount) sub.push(t.portCount + ' outlets');
+          if (t.testType === MULTI) sub.push(effectivePortCount(t) + ' outlets');
           if ((t.notes || '').trim()) sub.push(esc(t.notes));
           if (bad && (t.failReason || '').trim()) sub.push('Reason: ' + esc(t.failReason));
           if (bad && (t.actionTaken || '').trim()) sub.push('Action: ' + esc(actionText(t)));
@@ -2788,10 +2806,10 @@
           }).join('');
 
           var detail = [
-            ['OUTLETS FAILED', (t.testType === MULTI && Number(t.portCount))
+            ['OUTLETS FAILED', effectivePortCount(t)
               ? ((t.failedPorts || []).length
-                  ? t.failedPorts.join(', ') + ' of ' + t.portCount
-                  : 'All ' + t.portCount + ' outlets')
+                  ? t.failedPorts.join(', ') + ' of ' + effectivePortCount(t)
+                  : 'All ' + effectivePortCount(t) + ' outlets')
               : ''],
             ['LEAKAGE READING', (t.testType === MICROWAVE && t.leakage !== '')
               ? t.leakage + ' mW/cm\u00b2 (limit 5)' : ''],
@@ -2933,7 +2951,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v69';
+  var APP_VERSION = 'v70';
 
   function applyTheme() {
     var pref = state.theme || 'system';
@@ -3143,8 +3161,12 @@
         serial: get(r, 'Serial Number'),
         polarity: get(r, 'Polarity'),
         earthContinuity: get(r, 'Sample Value') || get(r, 'Earth Continuity Value (Ω)'),
-        portCount: (get(r, 'Test Type') === MULTI && get(r, 'Outlets'))
-          ? Number(get(r, 'Outlets')) : null,
+        portCount: (get(r, 'Test Type') === MULTI)
+          ? effectivePortCount({
+              testType: MULTI,
+              portCount: get(r, 'Outlets'),
+              appliance: name
+            }) : null,
         failedPorts: get(r, 'Failed Outlets')
           ? get(r, 'Failed Outlets').split(';')
               .map(function (x) { return Number(x.trim()); })
@@ -3168,8 +3190,12 @@
         state.recentItems.unshift(name);
       }
       state.itemTypes[name.toLowerCase()] = get(r, 'Test Type') || 'Class 1';
-      if (get(r, 'Test Type') === MULTI && get(r, 'Outlets')) {
-        state.itemPorts[name.toLowerCase()] = Number(get(r, 'Outlets'));
+      if (get(r, 'Test Type') === MULTI) {
+        state.itemPorts[name.toLowerCase()] = effectivePortCount({
+          testType: MULTI,
+          portCount: get(r, 'Outlets'),
+          appliance: name
+        });
       }
       // rebuild the location and fail-reason memories too, or a restore
       // leaves those lists empty even though the data is right there
