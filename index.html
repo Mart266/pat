@@ -383,6 +383,8 @@
   .rpt-sub { font-size: 6.4pt; color: #8a8a93; }
   .rpt-dtbl td { font-size: 6.9pt; padding: 1.1mm 1.6mm; }
   .rpt-dtbl th { font-size: 5.9pt; padding: 1.4mm 1.6mm; }
+  .rpt-fixed { table-layout: fixed; }
+  .rpt-bond-val { white-space: nowrap; display: inline-block; }
   .rpt-tbl { width: 100%; border-collapse: collapse; }
   .rpt-tbl th {
     font-size: 6.2pt; color: #52525b; text-align: left; font-weight: 600;
@@ -603,6 +605,12 @@
   html[data-theme="dark"] .segRow button.on {
     background-color: #f4f4f5; color: #18181b; border-color: #f4f4f5;
   }
+  .savedJobRow { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 6px; align-items: start; margin-bottom: 12px; }
+  .savedJobRow .field { margin-bottom: 0; min-width: 0; }
+  .savedJobRow button { padding: 10px 12px; border: 1px solid #d4d4d8; background: #fff; border-radius: 6px; font: 600 12px inherit; color: #3f3f46; cursor: pointer; white-space: nowrap; }
+  .savedJobRow button:disabled { opacity: .45; cursor: default; }
+  html[data-theme="dark"] .savedJobRow button { background:#1c1c1f; border-color:#3f3f46; color:#d4d4d8; }
+
   .dataBtns { display: flex; gap: 6px; flex-wrap: wrap; }
   .dataBtns button {
     padding: 8px 11px; border: 1px solid #d4d4d8; background-color: #fff;
@@ -645,6 +653,15 @@
     <input class="field" type="text" id="jobRef" autocomplete="off"
            autocapitalize="characters" spellcheck="false"
            style="text-transform:uppercase">
+
+    <label class="label" for="savedJobSelect">Saved site / job</label>
+    <div class="savedJobRow">
+      <select class="field" id="savedJobSelect" aria-label="Saved site or job">
+        <option value="">No saved jobs yet</option>
+      </select>
+      <button type="button" id="loadSavedJobBtn" disabled>Load</button>
+    </div>
+    <div class="settingHint">Built automatically from previously logged tests. Loading one restores its client, site address, job reference, technician and instrument details.</div>
 
     <label class="label" for="dateCompleted">Date completed (optional)</label>
     <input class="field" type="date" id="dateCompleted">
@@ -927,6 +944,7 @@
     itemPorts: {},
     recentLocations: [],
     recentReasons: [],
+    savedJobs: [],
     dateCompleted: '',
     theme: 'system',
     instrument: 'Aegis Patrol Pro CZ5001',
@@ -1007,6 +1025,8 @@
     jobPanel: document.getElementById('jobPanel'),
     jobSummary: document.getElementById('jobSummary'),
     jobCaret: document.getElementById('jobCaret'),
+    savedJobSelect: document.getElementById('savedJobSelect'),
+    loadSavedJobBtn: document.getElementById('loadSavedJobBtn'),
     inspPanel: document.getElementById('inspPanel'),
     inspSummary: document.getElementById('inspSummary'),
     inspCaret: document.getElementById('inspCaret'),
@@ -1113,6 +1133,7 @@
       state.itemPorts = data.itemPorts || {};
       state.recentLocations = data.recentLocations || [];
       state.recentReasons = data.recentReasons || [];
+      state.savedJobs = Array.isArray(data.savedJobs) ? data.savedJobs : [];
       if (data.portCount) state.portCount = data.portCount;
       if (typeof data.technician === 'string') state.technician = data.technician;
       state.client = data.client || '';
@@ -1149,6 +1170,96 @@
         '<span>' + escapeHtml(item) + '</span></label>';
     }).join('');
     el.inspSummary.textContent = inspSummaryText();
+  }
+
+  // Compare job details by meaning rather than tiny formatting differences. This
+  // prevents "501 Mt Derrimut Rd" and "501 Mt Derrimut Road" (or a stray
+  // full stop/capital) from being treated as separate jobs in the report warning.
+  function normalJobValue(value, kind) {
+    var v = String(value || '').toLowerCase().trim();
+    if (!v) return '';
+    v = v.replace(/&/g, ' and ').replace(/[.,#'"()]/g, ' ').replace(/\s+/g, ' ').trim();
+    if (kind === 'site') {
+      var swaps = [
+        [/\bmount\b/g, 'mt'], [/\broad\b/g, 'rd'], [/\bstreet\b/g, 'st'],
+        [/\bavenue\b/g, 'ave'], [/\bdrive\b/g, 'dr'], [/\bcourt\b/g, 'ct'],
+        [/\blane\b/g, 'ln'], [/\bplace\b/g, 'pl'], [/\bparade\b/g, 'pde'],
+        [/\bcrescent\b/g, 'cres'], [/\bboulevard\b/g, 'blvd'], [/\bhighway\b/g, 'hwy']
+      ];
+      swaps.forEach(function (r) { v = v.replace(r[0], r[1]); });
+    } else if (kind === 'client') {
+      v = v.replace(/\bcompany\b/g, 'co').replace(/\bproprietary limited\b/g, 'pty ltd');
+    } else if (kind === 'ref') {
+      return v.replace(/[^a-z0-9]/g, '');
+    }
+    return v.replace(/\s+/g, ' ').trim();
+  }
+
+  function jobProfileKey(t) {
+    return [normalJobValue(t.client, 'client'), normalJobValue(t.site, 'site'),
+            normalJobValue(t.jobRef, 'ref')].join('|');
+  }
+
+  function jobProfile(t) {
+    return {
+      client: (t.client || '').trim(), site: (t.site || '').trim(),
+      jobRef: (t.jobRef || '').trim(), technician: (t.technician || '').trim(),
+      instrument: (t.instrument || '').trim(), calibration: (t.calibration || '').trim()
+    };
+  }
+
+  function rememberJobProfile(t) {
+    var p = jobProfile(t);
+    var key = jobProfileKey(p);
+    if (key === '||') return;
+    state.savedJobs = [p].concat((state.savedJobs || []).filter(function (old) {
+      return jobProfileKey(old) !== key;
+    })).slice(0, 60);
+  }
+
+  function rebuildSavedJobsFromTests() {
+    if (!Array.isArray(state.savedJobs)) state.savedJobs = [];
+    // Oldest first means the newest occurrence of a site finishes at the front.
+    state.tests.slice().reverse().forEach(rememberJobProfile);
+  }
+
+  var savedJobCache = [];
+  function savedJobProfiles() {
+    var out = [], seen = {};
+    var combined = state.tests.concat(state.savedJobs || []);
+    combined.forEach(function (t) {
+      var key = jobProfileKey(t);
+      if (key === '||' || seen[key]) return;
+      seen[key] = true;
+      out.push(jobProfile(t));
+    });
+    return out.slice(0, 60);
+  }
+
+  function renderSavedJobs() {
+    if (!el.savedJobSelect || !el.loadSavedJobBtn) return;
+    savedJobCache = savedJobProfiles();
+    var html = '<option value="">' + (savedJobCache.length ? 'Choose a saved site / job' : 'No saved jobs yet') + '</option>';
+    savedJobCache.forEach(function (p, i) {
+      var label = [p.client, p.site, p.jobRef].filter(Boolean).join(' \u00b7 ');
+      html += '<option value="' + i + '">' + escapeHtml(label) + '</option>';
+    });
+    el.savedJobSelect.innerHTML = html;
+    el.loadSavedJobBtn.disabled = true;
+  }
+
+  function loadSavedJob(index) {
+    var p = savedJobCache[Number(index)];
+    if (!p) return;
+    state.client = p.client;
+    state.site = p.site;
+    state.jobRef = p.jobRef.toUpperCase();
+    if (p.technician) state.technician = p.technician;
+    if (p.instrument) state.instrument = p.instrument;
+    if (p.calibration) state.calibration = p.calibration;
+    state.dateCompleted = '';
+    syncInputs();
+    save();
   }
 
   function renderJobSummary() {
@@ -1990,6 +2101,7 @@
     el.calibration.value = state.calibration;
     el.dateCompleted.value = state.dateCompleted;
     el.leakage.value = state.leakage;
+    renderSavedJobs();
     var a = [state.make, state.model].filter(Boolean).join(' ');
     el.assetSummary.textContent = a ? '\u2014 ' + a : '';
   }
@@ -2147,6 +2259,7 @@
       notes: state.notes.trim()
     });
 
+    rememberJobProfile(state.tests[0]);
     state.recentLocations = remember(state.recentLocations, state.location);
     state.itemTypes[name.toLowerCase()] = state.testType;
     if (state.testType === MULTI) {
@@ -2469,12 +2582,15 @@
 
   function jobContext() {
     function distinct(key) {
-      var seen = [];
+      var out = [], seen = {};
+      var kind = key === 'site' ? 'site' : (key === 'client' ? 'client' : (key === 'jobRef' ? 'ref' : ''));
       state.tests.forEach(function (t) {
         var v = (t[key] || '').trim();
-        if (v && seen.indexOf(v) === -1) seen.push(v);
+        if (!v) return;
+        var normalized = kind ? normalJobValue(v, kind) : v.toLowerCase().replace(/\s+/g, ' ').trim();
+        if (!seen[normalized]) { seen[normalized] = true; out.push(v); }
       });
-      return seen;
+      return out;
     }
     var dates = state.tests.map(function (t) { return t.dateIso || ''; })
                            .filter(Boolean).sort();
@@ -2723,9 +2839,9 @@
         '<em>' + (u - f) + ' of ' + u + ' tests passed</em></h2>' +
         '<table class="rpt-tbl rpt-fixed rpt-dtbl">' +
         '<colgroup>' +
-          '<col style="width:13%"><col style="width:21%"><col style="width:10%">' +
-          '<col style="width:15%"><col style="width:11%"><col style="width:8%">' +
-          '<col style="width:14%"><col style="width:8%">' +
+          '<col style="width:13%"><col style="width:18%"><col style="width:9%">' +
+          '<col style="width:20%"><col style="width:10%"><col style="width:7%">' +
+          '<col style="width:16%"><col style="width:7%">' +
         '</colgroup>' +
         '<thead><tr>' +
           '<th>ASSET ID</th><th>ASSET</th><th>TEST</th>' +
@@ -2742,11 +2858,11 @@
             if (t.testType === MULTI && Array.isArray(vals)) {
               bond = vals.map(function (v, i) {
                 var pf = (t.failedPorts || []).indexOf(i + 1) !== -1;
-                return '<span class="' + (pf ? 'rpt-fail' : '') + '">' +
+                return '<span class="rpt-bond-val' + (pf ? ' rpt-fail' : '') + '">' +
                   'Outlet ' + (i + 1) + ': ' + esc(v) + ' \u03a9</span>';
               }).join('<br>');
             } else if (vals) {
-              bond = esc(String(vals)) + ' \u03a9';
+              bond = '<span class="rpt-bond-val">' + esc(String(vals)) + ' \u03a9</span>';
             }
           }
 
@@ -2951,7 +3067,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v70';
+  var APP_VERSION = 'v71';
 
   function applyTheme() {
     var pref = state.theme || 'system';
@@ -3216,6 +3332,7 @@
              (b.id - a.id);
     });
 
+    rebuildSavedJobsFromTests();
     if (added > 0) restoreContinuityFromLatest();
 
     try {
@@ -3323,11 +3440,11 @@
     el.appliance.focus();
     save();
   });
-  el.site.addEventListener('input', function () { state.site = this.value; save(); });
+  el.site.addEventListener('input', function () { state.site = this.value; renderJobSummary(); save(); });
   el.technician.addEventListener('input', function () {
     state.technician = this.value; renderJobSummary(); save();
   });
-  el.client.addEventListener('input', function () { state.client = this.value; save(); });
+  el.client.addEventListener('input', function () { state.client = this.value; renderJobSummary(); save(); });
   el.jobRef.addEventListener('input', function () {
     var upper = this.value.toUpperCase();
     if (upper !== this.value) {
@@ -3340,6 +3457,20 @@
     renderJobSummary();
     save();
   });
+
+  if (el.savedJobSelect) {
+    el.savedJobSelect.addEventListener('change', function () {
+      el.loadSavedJobBtn.disabled = this.value === '';
+    });
+  }
+  if (el.loadSavedJobBtn) {
+    el.loadSavedJobBtn.addEventListener('click', function () {
+      if (el.savedJobSelect.value === '') return;
+      loadSavedJob(el.savedJobSelect.value);
+      el.savedJobSelect.value = '';
+      el.loadSavedJobBtn.disabled = true;
+    });
+  }
 
   document.getElementById('portPresets').addEventListener('click', function (e) {
     var b = e.target.closest('[data-ports]');
@@ -3957,6 +4088,7 @@
 
   // --- init ---
   load();
+  rebuildSavedJobsFromTests();
   if (!state.passedItems || !state.passedItems.length) state.passedItems = allPassed();
   syncInputs();
   renderCheckGrid();
