@@ -2608,10 +2608,10 @@
             var vals = values.split(' | ');
             if (t.testType === MULTI && vals.length > 1) {
               valueRows = vals.map(function (v, i) {
-                return '<tr><td>Outlet ' + (i + 1) + ' Earth Continuity</td><td class="rpt-r rpt-mono">' + esc(v) + '</td></tr>';
+                return '<tr><td>Outlet ' + (i + 1) + ' Earth Continuity Result</td><td class="rpt-r rpt-mono">' + esc(v) + '</td></tr>';
               }).join('');
             } else {
-              valueRows = '<tr><td>Earth Continuity</td><td class="rpt-r rpt-mono">' + esc(values) + ' Ω</td></tr>';
+              valueRows = '<tr><td>Earth Continuity Result</td><td class="rpt-r rpt-mono">' + esc(values) + ' Ω</td></tr>';
             }
           }
 
