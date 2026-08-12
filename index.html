@@ -801,7 +801,6 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
         Export ZIP
       </button>
-      <button class="clearButton" id="copyZipBtn">Copy ZIP</button>
       <button class="clearButton" id="exportBtn">CSV</button>
       <button class="clearButton" id="clearBtn">Clear</button>
       </div>
@@ -859,12 +858,10 @@
     <div class="settingRow">
       <div class="settingLabel">Restore an export</div>
       <div class="settingHint">Choose a previously exported <b>zip</b> to restore records and
-        photographs together, or a <b>CSV</b> for records only. <b>Paste ZIP</b> also checks
-        the clipboard for a copied zip file. Anything already held is skipped, so importing
-        the same file twice is safe.</div>
+        photographs together, or a <b>CSV</b> for records only. Anything already held is
+        skipped, so importing the same file twice is safe.</div>
       <div class="dataBtns">
         <button id="importBtn">Choose file</button>
-        <button id="pasteZipBtn">Paste ZIP</button>
       </div>
     </div>
 
@@ -2434,8 +2431,6 @@
              'PAT-Tests-' + stamp() + '.csv');
   }
 
-  // Keep the original v71 export path untouched. On iPhone this is the reliable
-  // download/share flow and must not depend on clipboard support.
   function exportZip() {
     if (!state.tests.length) { alert('Nothing to export yet'); return; }
 
@@ -2468,118 +2463,10 @@
         } catch (e) { console.error('signature not added to zip', e); }
       }
       var parts = makeZip(files);
-      var zipBlob = new Blob(parts, { type: 'application/zip' });
-      var zipName = base + '.zip';
-
-      // Prefer the native iOS/Android share sheet for ZIP exports. This restores the
-      // useful mobile workflow: Export ZIP -> Share sheet -> Copy / WhatsApp / Files.
-      // Keep the old browser download as a fallback for browsers that cannot share files.
-      if (typeof File !== 'undefined' && navigator.share) {
-        try {
-          var zipFile = new File([zipBlob], zipName, { type: 'application/zip' });
-          var shareData = { files: [zipFile], title: zipName };
-          var canShareFile = !navigator.canShare || navigator.canShare(shareData);
-          if (canShareFile) {
-            return navigator.share(shareData).catch(function (shareErr) {
-              // Cancelling the share sheet is not an export failure; do not force a download.
-              if (shareErr && shareErr.name === 'AbortError') return;
-              console.error('ZIP share failed, falling back to download', shareErr);
-              download(zipBlob, zipName);
-            });
-          }
-        } catch (shareSetupErr) {
-          console.error('Could not prepare ZIP for sharing', shareSetupErr);
-        }
-      }
-
-      download(zipBlob, zipName);
+      download(new Blob(parts, { type: 'application/zip' }), base + '.zip');
     }).catch(function (e) {
       console.error(e);
       alert('Could not build the zip. Export the CSV instead.');
-    });
-  }
-
-  // Separate ZIP builder used only by the experimental clipboard button. Keeping this
-  // separate ensures Copy ZIP cannot change the proven Export ZIP behaviour above.
-  function buildZipForClipboard() {
-    if (!state.tests.length) return Promise.reject(new Error('Nothing to export yet'));
-
-    var base = 'PAT-' + safeName(state.jobRef || state.site || 'Tests') + '-' + stamp();
-    var files = [{ name: base + '.csv', bytes: strBytes('\ufeff' + buildCSV()) }];
-    var jobs = [];
-
-    state.tests.forEach(function (t) {
-      (t.photoIds || []).forEach(function (id, i) {
-        jobs.push(photoGet(id).then(function (blob) {
-          if (!blob) return null;
-          return blob.arrayBuffer().then(function (buf) {
-            return {
-              name: 'photos/' + safeName(t.tagNumber || t.appliance) + '-' + (i + 1) + '.jpg',
-              bytes: new Uint8Array(buf)
-            };
-          });
-        }).catch(function () { return null; }));
-      });
-    });
-
-    return Promise.all(jobs).then(function (results) {
-      results.forEach(function (f) { if (f) files.push(f); });
-      if (state.signatureDataUrl) {
-        try {
-          files.push({ name: 'signature.png', bytes: dataUrlBytes(state.signatureDataUrl) });
-        } catch (e) { console.error('signature not added to clipboard zip', e); }
-      }
-      return {
-        blob: new Blob(makeZip(files), { type: 'application/zip' }),
-        filename: base + '.zip'
-      };
-    });
-  }
-
-  // Clipboard support for binary files varies by browser. This remains experimental and
-  // deliberately does not share code with Export ZIP.
-  function copyZip() {
-    if (!state.tests.length) { alert('Nothing to copy yet'); return; }
-    if (!navigator.clipboard || !navigator.clipboard.write || typeof ClipboardItem === 'undefined') {
-      alert('This browser does not support copying ZIP files directly. Use Export ZIP instead.');
-      return;
-    }
-
-    buildZipForClipboard().then(function (pkg) {
-      var attempts = [
-        { type: 'application/zip', otherApps: true },
-        { type: 'web application/zip', otherApps: false }
-      ];
-
-      function tryNext(i, lastErr) {
-        if (i >= attempts.length) {
-          if (lastErr) console.error(lastErr);
-          alert('This browser blocked ZIP clipboard data. Use Export ZIP instead.');
-          return;
-        }
-        var attempt = attempts[i];
-        var data = {};
-        data[attempt.type] = pkg.blob;
-        var item;
-        try {
-          item = new ClipboardItem(data);
-        } catch (e) {
-          tryNext(i + 1, e);
-          return;
-        }
-        navigator.clipboard.write([item]).then(function () {
-          if (attempt.otherApps) {
-            alert('ZIP copied to clipboard.');
-          } else {
-            alert('ZIP copied for pasting back into this logger. This browser does not expose ZIP clipboard data as a normal file to every other app.');
-          }
-        }).catch(function (e) { tryNext(i + 1, e); });
-      }
-
-      tryNext(0, null);
-    }).catch(function (e) {
-      console.error(e);
-      alert('Could not build the zip.');
     });
   }
 
@@ -3180,7 +3067,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v74';
+  var APP_VERSION = 'v71';
 
   function applyTheme() {
     var pref = state.theme || 'system';
@@ -3462,84 +3349,6 @@
     }
     return { added: added, skipped: skipped };
   }
-
-  function looksLikeZip(buf) {
-    if (!buf || buf.byteLength < 4) return false;
-    var v = new DataView(buf);
-    var sig = v.getUint32(0, true);
-    return sig === 0x04034b50 || sig === 0x06054b50 || sig === 0x08074b50;
-  }
-
-  function importZipBlob(blob) {
-    return blob.arrayBuffer().then(function (buf) {
-      if (!looksLikeZip(buf)) throw new Error('Clipboard item is not a ZIP file');
-      importZip(buf);
-    });
-  }
-
-  function pasteZipFromClipboard() {
-    if (!navigator.clipboard || !navigator.clipboard.read) {
-      alert('Direct clipboard reading is not available in this browser. Copy the ZIP, return here, then use your device\'s normal Paste command anywhere in the app.');
-      return;
-    }
-
-    navigator.clipboard.read().then(function (items) {
-      var candidates = [];
-      items.forEach(function (item) {
-        (item.types || []).forEach(function (type) {
-          var low = String(type).toLowerCase();
-          if (low === 'application/zip' || low === 'application/x-zip-compressed' ||
-              low === 'application/octet-stream' || low === 'web application/zip') {
-            candidates.push({ item: item, type: type });
-          }
-        });
-      });
-
-      function tryCandidate(i) {
-        if (i >= candidates.length) {
-          alert('No ZIP file was found on the clipboard. If you copied the attachment from another app, try tapping and holding in this page and choosing Paste.');
-          return;
-        }
-        candidates[i].item.getType(candidates[i].type).then(function (blob) {
-          return blob.arrayBuffer();
-        }).then(function (buf) {
-          if (!looksLikeZip(buf)) { tryCandidate(i + 1); return; }
-          importZip(buf);
-        }).catch(function () { tryCandidate(i + 1); });
-      }
-      tryCandidate(0);
-    }).catch(function (e) {
-      console.error('Clipboard read failed', e);
-      alert('The browser could not read the clipboard directly. Copy the ZIP, return here, then use your device\'s normal Paste command anywhere in the app.');
-    });
-  }
-
-  // A normal paste event catches file clipboard data on browsers that do not expose it
-  // through navigator.clipboard.read(). It only intercepts the paste when an actual ZIP
-  // file is present, so ordinary text pasting into fields is unaffected.
-  document.addEventListener('paste', function (e) {
-    var dt = e.clipboardData;
-    if (!dt) return;
-    var pasted = [];
-    Array.prototype.slice.call(dt.files || []).forEach(function (f) { pasted.push(f); });
-    Array.prototype.slice.call(dt.items || []).forEach(function (it) {
-      if (it.kind !== 'file' || !it.getAsFile) return;
-      var f = it.getAsFile();
-      if (f && pasted.indexOf(f) === -1) pasted.push(f);
-    });
-    var zip = pasted.filter(function (f) {
-      var name = String(f.name || '');
-      var type = String(f.type || '').toLowerCase();
-      return /\.zip$/i.test(name) || type === 'application/zip' ||
-             type === 'application/x-zip-compressed' || type === 'application/octet-stream';
-    })[0];
-    if (!zip) return;
-    e.preventDefault();
-    importZipBlob(zip).catch(function (err) {
-      console.error(err);
-      alert('The pasted file could not be read as a ZIP export.');
-    });
-  });
 
   // Restore a whole export: the CSV plus any photographs, matched back to
   // records by the asset ID in each photo's filename.
@@ -3893,8 +3702,6 @@
     applyTheme();
     save();
   });
-
-  document.getElementById('pasteZipBtn').addEventListener('click', pasteZipFromClipboard);
 
   document.getElementById('importBtn').addEventListener('click', function () {
     var holder = document.getElementById('fileHolder');
@@ -4256,7 +4063,6 @@
   document.getElementById('failBtn').addEventListener('click', function () { handleTest('fail'); });
   document.getElementById('exportBtn').addEventListener('click', exportCSV);
   document.getElementById('zipBtn').addEventListener('click', exportZip);
-  document.getElementById('copyZipBtn').addEventListener('click', copyZip);
 
   el.instrument.addEventListener('input', function () { state.instrument = this.value; save(); });
   el.calibration.addEventListener('input', function () { state.calibration = this.value; save(); });
