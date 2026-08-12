@@ -2468,7 +2468,31 @@
         } catch (e) { console.error('signature not added to zip', e); }
       }
       var parts = makeZip(files);
-      download(new Blob(parts, { type: 'application/zip' }), base + '.zip');
+      var zipBlob = new Blob(parts, { type: 'application/zip' });
+      var zipName = base + '.zip';
+
+      // Prefer the native iOS/Android share sheet for ZIP exports. This restores the
+      // useful mobile workflow: Export ZIP -> Share sheet -> Copy / WhatsApp / Files.
+      // Keep the old browser download as a fallback for browsers that cannot share files.
+      if (typeof File !== 'undefined' && navigator.share) {
+        try {
+          var zipFile = new File([zipBlob], zipName, { type: 'application/zip' });
+          var shareData = { files: [zipFile], title: zipName };
+          var canShareFile = !navigator.canShare || navigator.canShare(shareData);
+          if (canShareFile) {
+            return navigator.share(shareData).catch(function (shareErr) {
+              // Cancelling the share sheet is not an export failure; do not force a download.
+              if (shareErr && shareErr.name === 'AbortError') return;
+              console.error('ZIP share failed, falling back to download', shareErr);
+              download(zipBlob, zipName);
+            });
+          }
+        } catch (shareSetupErr) {
+          console.error('Could not prepare ZIP for sharing', shareSetupErr);
+        }
+      }
+
+      download(zipBlob, zipName);
     }).catch(function (e) {
       console.error(e);
       alert('Could not build the zip. Export the CSV instead.');
@@ -3156,7 +3180,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v73';
+  var APP_VERSION = 'v74';
 
   function applyTheme() {
     var pref = state.theme || 'system';
