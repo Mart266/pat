@@ -623,6 +623,41 @@
   html[data-theme="dark"] .dataBtns button {
     background-color: #1c1c1f; border-color: #3f3f46; color: #d4d4d8;
   }
+  .dataBtns button.danger { background:#fff; border-color:#fecaca; color:#991b1b; }
+  html[data-theme="dark"] .dataBtns button.danger { background:#1c1c1f; border-color:#7f1d1d; color:#fca5a5; }
+
+  .clearModal {
+    position: fixed; inset: 0; z-index: 1000; display: none; align-items: center; justify-content: center;
+    padding: 18px; background: rgba(9,9,11,.58);
+  }
+  .clearModal.show { display: flex; }
+  .clearModalCard {
+    width: min(420px, 100%); max-height: calc(100vh - 36px); overflow: auto;
+    background: #fff; color: #18181b; border-radius: 10px; box-shadow: 0 20px 55px rgba(0,0,0,.28);
+    border: 1px solid #e4e4e7; padding: 16px;
+  }
+  .clearModalTitle { font-size: 16px; font-weight: 700; margin: 0 0 4px; }
+  .clearModalHint { font-size: 11px; color: #71717a; line-height: 1.45; margin-bottom: 12px; }
+  .clearChoice {
+    display: grid; grid-template-columns: 22px minmax(0,1fr) auto; gap: 8px; align-items: center;
+    padding: 11px 8px; border-top: 1px solid #f4f4f5; cursor: pointer; font-size: 13px;
+  }
+  .clearChoice:first-of-type { border-top: none; }
+  .clearChoice input { width: 18px; height: 18px; margin: 0; }
+  .clearChoice.disabled { opacity: .42; cursor: default; }
+  .clearChoiceCount { color: #a1a1aa; font-size: 11px; white-space: nowrap; }
+  .clearModalActions { display: flex; justify-content: flex-end; gap: 7px; margin-top: 14px; }
+  .clearModalActions button {
+    padding: 9px 12px; border: 1px solid #d4d4d8; background: #fff; border-radius: 6px;
+    font: 600 12px inherit; color: #3f3f46; cursor: pointer;
+  }
+  .clearModalActions button.danger { background: #b91c1c; border-color: #b91c1c; color: #fff; }
+  .clearModalActions button:disabled { opacity: .4; cursor: default; }
+  html[data-theme="dark"] .clearModalCard { background:#18181b; color:#f4f4f5; border-color:#3f3f46; }
+  html[data-theme="dark"] .clearModalHint { color:#a1a1aa; }
+  html[data-theme="dark"] .clearChoice { border-color:#27272a; }
+  html[data-theme="dark"] .clearModalActions button { background:#1c1c1f; border-color:#3f3f46; color:#d4d4d8; }
+  html[data-theme="dark"] .clearModalActions button.danger { background:#b91c1c; border-color:#b91c1c; color:#fff; }
 
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
@@ -913,8 +948,8 @@
       <div class="settingLabel">Storage</div>
       <div class="settingHint" id="storageStat">&nbsp;</div>
       <div class="dataBtns">
-        <button id="clearPhotosBtn">Clear all photos</button>
-        <button id="clearItemsBtn">Clear remembered items</button>
+        <button id="clearItemsBtn">Clear stored items</button>
+        <button id="freshStartBtn" class="danger">Fresh start — clear everything</button>
       </div>
     </div>
 
@@ -924,6 +959,37 @@
     </div>
   </div>
 
+</div>
+
+<div class="clearModal" id="clearStoredModal" aria-hidden="true">
+  <div class="clearModalCard" role="dialog" aria-modal="true" aria-labelledby="clearStoredTitle">
+    <div class="clearModalTitle" id="clearStoredTitle">Clear stored items</div>
+    <div class="clearModalHint">Tick only what you want to remove. Logged test records are kept. Clearing saved site / job entries does not delete tests. Clearing photos removes the photo attachments from those records.</div>
+    <label class="clearChoice" data-clear-row="items">
+      <input type="checkbox" data-clear-kind="items">
+      <span>Appliance names</span><span class="clearChoiceCount" data-clear-count="items"></span>
+    </label>
+    <label class="clearChoice" data-clear-row="locations">
+      <input type="checkbox" data-clear-kind="locations">
+      <span>Locations</span><span class="clearChoiceCount" data-clear-count="locations"></span>
+    </label>
+    <label class="clearChoice" data-clear-row="reasons">
+      <input type="checkbox" data-clear-kind="reasons">
+      <span>Fail reasons</span><span class="clearChoiceCount" data-clear-count="reasons"></span>
+    </label>
+    <label class="clearChoice" data-clear-row="jobs">
+      <input type="checkbox" data-clear-kind="jobs">
+      <span>Saved site / job entries</span><span class="clearChoiceCount" data-clear-count="jobs"></span>
+    </label>
+    <label class="clearChoice" data-clear-row="photos">
+      <input type="checkbox" data-clear-kind="photos">
+      <span>All photos</span><span class="clearChoiceCount" data-clear-count="photos"></span>
+    </label>
+    <div class="clearModalActions">
+      <button id="clearStoredCancel">Cancel</button>
+      <button class="danger" id="clearStoredConfirm" disabled>Clear selected</button>
+    </div>
+  </div>
 </div>
 
 <div id="fileHolder" style="position:absolute;width:0;height:0;overflow:hidden"></div>
@@ -1257,8 +1323,9 @@
   var savedJobCache = [];
   function savedJobProfiles() {
     var out = [], seen = {};
-    var combined = state.tests.concat(state.savedJobs || []);
-    combined.forEach(function (t) {
+    // Saved jobs are their own memory store. Logged tests do not silently
+    // repopulate this list after the user explicitly clears it.
+    (state.savedJobs || []).forEach(function (t) {
       var key = jobProfileKey(t);
       if (key === '||' || seen[key]) return;
       seen[key] = true;
@@ -3228,7 +3295,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v80';
+  var APP_VERSION = 'v83';
 
   function applyTheme() {
     var pref = state.theme || 'system';
@@ -3268,8 +3335,13 @@
     groups.forEach(function (g) {
       if (!g[2].length) return;
       any = true;
+      // Keep the stored lists recency-based for quick-entry chips, but display
+      // remembered entries alphabetically inside each management category.
+      var sorted = g[2].slice().sort(function (a, b) {
+        return String(a).localeCompare(String(b), 'en-AU', { sensitivity: 'base', numeric: true });
+      });
       html += '<optgroup label="' + g[1] + ' (' + g[2].length + ')">' +
-        g[2].map(function (v) {
+        sorted.map(function (v) {
           return '<option value="' + escapeHtml(g[0] + '|' + v) + '">' +
                  escapeHtml(v) + '</option>';
         }).join('') + '</optgroup>';
@@ -4052,16 +4124,110 @@
     save(); renderSettings();
   });
 
-  document.getElementById('clearPhotosBtn').addEventListener('click', function () {
-    var n = allPhotoIds().length;
-    if (!n) { alert('There are no photos stored.'); return; }
-    if (!confirm('Delete all ' + n + (n === 1 ? ' photo' : ' photos') + '?\n\n' +
-                 'Test records are kept. Export the zip first if you still need them.')) return;
-    Object.keys(photoUrls).forEach(function (id) { URL.revokeObjectURL(photoUrls[id]); });
-    photoUrls = {};
-    state.tests.forEach(function (t) { t.photoIds = []; });
-    photoClear().catch(function () {});
-    renderFollowUp(); renderSettings(); save();
+  function clearStoredCounts() {
+    return {
+      items: state.recentItems.length,
+      locations: state.recentLocations.length,
+      reasons: state.recentReasons.length,
+      jobs: (state.savedJobs || []).length,
+      photos: allPhotoIds().length
+    };
+  }
+
+  function updateClearStoredConfirm() {
+    var btn = document.getElementById('clearStoredConfirm');
+    var checked = document.querySelectorAll('#clearStoredModal [data-clear-kind]:checked').length;
+    btn.disabled = !checked;
+  }
+
+  function renderClearStoredModal() {
+    var counts = clearStoredCounts();
+    ['items', 'locations', 'reasons', 'jobs', 'photos'].forEach(function (kind) {
+      var input = document.querySelector('[data-clear-kind="' + kind + '"]');
+      var row = document.querySelector('[data-clear-row="' + kind + '"]');
+      var countNode = document.querySelector('[data-clear-count="' + kind + '"]');
+      var n = counts[kind] || 0;
+      input.checked = false;
+      input.disabled = !n;
+      row.classList.toggle('disabled', !n);
+      countNode.textContent = n + (kind === 'photos' ? (n === 1 ? ' photo' : ' photos') : (n === 1 ? ' entry' : ' entries'));
+    });
+    updateClearStoredConfirm();
+    return counts;
+  }
+
+  function closeClearStoredModal() {
+    var modal = document.getElementById('clearStoredModal');
+    modal.classList.remove('show');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+
+  function openClearStoredModal() {
+    var counts = renderClearStoredModal();
+    if (!(counts.items || counts.locations || counts.reasons || counts.jobs || counts.photos)) {
+      alert('There are no stored entries or photos to clear.');
+      return;
+    }
+    var modal = document.getElementById('clearStoredModal');
+    modal.classList.add('show');
+    modal.setAttribute('aria-hidden', 'false');
+    var first = modal.querySelector('[data-clear-kind]:not(:disabled)');
+    if (first) setTimeout(function () { first.focus(); }, 0);
+  }
+
+  document.getElementById('clearStoredModal').addEventListener('change', function (e) {
+    if (e.target.matches('[data-clear-kind]')) updateClearStoredConfirm();
+  });
+
+  document.getElementById('clearStoredModal').addEventListener('click', function (e) {
+    if (e.target === this) closeClearStoredModal();
+  });
+
+  document.getElementById('clearStoredCancel').addEventListener('click', closeClearStoredModal);
+
+  document.getElementById('clearStoredConfirm').addEventListener('click', function () {
+    var selected = {};
+    document.querySelectorAll('#clearStoredModal [data-clear-kind]:checked').forEach(function (input) {
+      selected[input.getAttribute('data-clear-kind')] = true;
+    });
+    if (!Object.keys(selected).length) return;
+
+    if (selected.items) {
+      state.recentItems = [];
+      state.itemTypes = {};
+      state.itemPorts = {};
+      renderChips();
+    }
+    if (selected.locations) {
+      state.recentLocations = [];
+      renderLocChips();
+    }
+    if (selected.reasons) {
+      state.recentReasons = [];
+    }
+    if (selected.jobs) {
+      state.savedJobs = [];
+      savedJobCache = [];
+      renderSavedJobs();
+    }
+    if (selected.photos) {
+      Object.keys(photoUrls).forEach(function (id) { URL.revokeObjectURL(photoUrls[id]); });
+      photoUrls = {};
+      state.tests.forEach(function (t) { t.photoIds = []; });
+      photoClear().catch(function () {});
+    }
+
+    closeClearStoredModal();
+    renderItemManage();
+    renderFollowUp();
+    renderSettings();
+    save();
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && document.getElementById('clearStoredModal').classList.contains('show')) {
+      closeClearStoredModal();
+    }
   });
 
   document.getElementById('failMore').addEventListener('click', function () {
@@ -4077,12 +4243,35 @@
     forgetEntry(v.slice(0, at), v.slice(at + 1));
   });
 
-  document.getElementById('clearItemsBtn').addEventListener('click', function () {
-    if (!state.recentItems.length) { alert('There are no remembered item names.'); return; }
-    if (!confirm('Forget all ' + state.recentItems.length + ' remembered item names?\n\n' +
-                 'Logged tests and the test-type memory are kept.')) return;
-    state.recentItems = [];
-    renderChips(); renderSettings(); save();
+  document.getElementById('clearItemsBtn').addEventListener('click', openClearStoredModal);
+
+  document.getElementById('freshStartBtn').addEventListener('click', function () {
+    var message =
+      'Fresh start and clear EVERYTHING from this app on this device?\n\n' +
+      'This removes:\n' +
+      '• all logged tests\n' +
+      '• all photos\n' +
+      '• remembered appliance names, locations and fail reasons\n' +
+      '• saved site / job entries\n' +
+      '• current job, tag and form data\n' +
+      '• technician, instrument and calibration changes\n' +
+      '• saved signature and app preferences\n\n' +
+      'The app will reload with its original defaults. This cannot be undone. Export anything you need first.';
+
+    if (!confirm(message)) return;
+
+    clearTimeout(toastTimer);
+    Object.keys(photoUrls).forEach(function (id) {
+      try { URL.revokeObjectURL(photoUrls[id]); } catch (e) {}
+    });
+    photoUrls = {};
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+
+    photoClear().catch(function () {
+      // Local state is still cleared even if IndexedDB is unavailable.
+    }).then(function () {
+      window.location.reload();
+    });
   });
 
   document.getElementById('settingsToggle').addEventListener('click', function () {
@@ -4306,7 +4495,6 @@
 
   // --- init ---
   load();
-  rebuildSavedJobsFromTests();
   if (!state.passedItems || !state.passedItems.length) state.passedItems = allPassed();
   syncInputs();
   renderCheckGrid();
