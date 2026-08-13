@@ -877,17 +877,23 @@
 
     <div class="settingRow">
       <div class="settingLabel">Report signature</div>
-      <div class="settingHint">Sign below with your finger or stylus, then save it. The saved signature is stamped into generated reports until you replace or clear it.</div>
-      <div class="signaturePadWrap">
-        <canvas id="signaturePad" width="640" height="220" aria-label="Signature pad"></canvas>
+      <div class="settingHint">If no signature is stored, the signing pad appears automatically. When a signature is saved or restored, the pad stays hidden until you choose Change Signature.</div>
+      <div id="signaturePadEditor" data-editing="0">
+        <div class="signaturePadWrap">
+          <canvas id="signaturePad" width="640" height="220" aria-label="Signature pad"></canvas>
+        </div>
+        <div class="dataBtns">
+          <button id="signaturePadClearBtn">Clear pad</button>
+          <button id="signaturePadSaveBtn" class="primary">Save signature</button>
+          <button id="signaturePadCancelBtn">Cancel</button>
+        </div>
       </div>
+      <div class="signaturePreview empty" id="signaturePreview">No saved signature</div>
       <div class="dataBtns">
-        <button id="signaturePadClearBtn">Clear pad</button>
-        <button id="signaturePadSaveBtn" class="primary">Save signature</button>
+        <button id="signatureChangeBtn">Change Signature</button>
         <button id="signatureBtn">Upload PNG</button>
         <button id="signatureClearBtn">Remove saved signature</button>
       </div>
-      <div class="signaturePreview empty" id="signaturePreview">No saved signature</div>
       <div class="settingHint" id="signatureStatus">No signature stored.</div>
     </div>
 
@@ -3067,7 +3073,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v72';
+  var APP_VERSION = 'v73';
 
   function applyTheme() {
     var pref = state.theme || 'system';
@@ -3175,6 +3181,16 @@
         sigPreview.classList.add('empty');
         sigPreview.textContent = 'No saved signature';
       }
+    }
+    var sigEditor = document.getElementById('signaturePadEditor');
+    var sigChange = document.getElementById('signatureChangeBtn');
+    var sigRemove = document.getElementById('signatureClearBtn');
+    if (sigEditor) {
+      if (!state.signatureDataUrl) sigEditor.setAttribute('data-editing', '1');
+      var editingSig = sigEditor.getAttribute('data-editing') === '1';
+      sigEditor.style.display = editingSig ? '' : 'none';
+      if (sigChange) sigChange.style.display = state.signatureDataUrl && !editingSig ? '' : 'none';
+      if (sigRemove) sigRemove.style.display = state.signatureDataUrl ? '' : 'none';
     }
     renderItemManage();
   }
@@ -3818,10 +3834,26 @@
       if (!dataUrl) { alert('Sign in the box first.'); return; }
       state.signatureDataUrl = dataUrl;
       state.signatureName = 'Signed in app';
+      var editor = document.getElementById('signaturePadEditor');
+      if (editor) editor.setAttribute('data-editing', '0');
       save();
-      renderSettings();
       resetPad();
+      renderSettings();
       alert('Signature saved. It will be stamped on your reports.');
+    });
+
+    document.getElementById('signatureChangeBtn').addEventListener('click', function () {
+      var editor = document.getElementById('signaturePadEditor');
+      if (editor) editor.setAttribute('data-editing', '1');
+      resetPad();
+      renderSettings();
+    });
+
+    document.getElementById('signaturePadCancelBtn').addEventListener('click', function () {
+      resetPad();
+      var editor = document.getElementById('signaturePadEditor');
+      if (editor && state.signatureDataUrl) editor.setAttribute('data-editing', '0');
+      renderSettings();
     });
   })();
 
@@ -3845,6 +3877,8 @@
       r.onload = function () {
         state.signatureDataUrl = String(r.result || '');
         state.signatureName = f.name;
+        var editor = document.getElementById('signaturePadEditor');
+        if (editor) editor.setAttribute('data-editing', '0');
         save(); renderSettings();
       };
       r.onerror = function () { alert('Could not read that signature file.'); };
