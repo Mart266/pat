@@ -416,7 +416,6 @@
   .rpt-cols { display: flex; gap: 6mm; padding: 3mm 4mm 1mm; }
   .rpt-insp { width: 50%; }
   .rpt-detail { width: 50%; }
-  .rpt-detail-full { width: 100%; }
   .rpt-dt { margin-bottom: 3mm; font-size: 7.6pt; }
   .rpt-dt span {
     display: block; font-size: 6.2pt; color: #8a8a93; letter-spacing: 0.1em;
@@ -2921,14 +2920,12 @@
       return '<h2 class="rpt-h2">' + esc(area.toUpperCase()) + '</h2>' +
         g.map[area].map(function (t) {
           var failed = t.failedItems || [];
-          var insp = failed.map(function (item) {
+          var insp = INSPECTION_ITEMS.map(function (item) {
+            var bad = failed.indexOf(item) !== -1;
             return '<tr><td>' + esc(item) + '</td>' +
-              '<td class="rpt-r rpt-fail">Fail</td></tr>';
+              '<td class="rpt-r ' + (bad ? 'rpt-fail' : 'rpt-pass') + '">' +
+              (bad ? 'Fail' : 'Pass') + '</td></tr>';
           }).join('');
-          var inspTable = insp ?
-            '<table class="rpt-tbl rpt-insp"><thead><tr>' +
-              '<th>FAILED INSPECTION ITEM</th><th class="rpt-r">RESULT</th>' +
-            '</tr></thead><tbody>' + insp + '</tbody></table>' : '';
 
           var detail = [
             ['OUTLETS FAILED', effectivePortCount(t)
@@ -2962,8 +2959,10 @@
               '<span class="rpt-mono">' + esc(t.tagNumber) + '</span>' +
               '<span class="rpt-fail rpt-r">FAIL</span></div>' +
             '<div class="rpt-cols">' +
-              inspTable +
-              '<div class="rpt-detail' + (insp ? '' : ' rpt-detail-full') + '">' + detail + '</div>' +
+              '<table class="rpt-tbl rpt-insp"><thead><tr>' +
+                '<th>INSPECTION ITEM</th><th class="rpt-r">RESULT</th>' +
+              '</tr></thead><tbody>' + insp + '</tbody></table>' +
+              '<div class="rpt-detail">' + detail + '</div>' +
             '</div>' +
             (photos ? '<div class="rpt-dt rpt-photolab"><span>Photographs</span></div>' +
                       '<div class="rpt-photos">' + photos + '</div>' : '') +
@@ -3074,7 +3073,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v74';
+  var APP_VERSION = 'v75';
 
   function applyTheme() {
     var pref = state.theme || 'system';
@@ -3385,6 +3384,8 @@
           state.signatureDataUrl = bytesToDataUrl(sig.bytes,
             /\.png$/i.test(sig.name) ? 'image/png' : 'image/jpeg');
           state.signatureName = 'Restored from export';
+          var sigEditor = document.getElementById('signaturePadEditor');
+          if (sigEditor) sigEditor.setAttribute('data-editing', '0');
           sigRestored = true;
         } catch (e) { console.error('signature not restored', e); }
       }
