@@ -457,8 +457,8 @@
   }
 
   #toast {
-    position: sticky; top: 70px; z-index: 7; width: calc(100% - 24px); box-sizing: border-box;
-    margin: -4px 12px 12px; padding: 14px 16px; border-radius: 10px; color: #fff;
+    position: static; z-index: auto; width: 100%; box-sizing: border-box;
+    margin: 8px 0 0; padding: 14px 16px; border-radius: 10px; color: #fff;
     box-shadow: 0 8px 24px rgba(0,0,0,0.24); display: none; align-items: center; gap: 12px;
     overflow: hidden;
   }
@@ -480,11 +480,13 @@
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 16px; letter-spacing: .02em;
     margin-left: 4px; color: #fff;
   }
-  #toast .undo {
-    margin-left: auto; align-self: stretch; background: rgba(255,255,255,0.16); color: #fff; border: 1px solid rgba(255,255,255,.22);
+  #toast .undo,
+  #toast .toastFollow {
+    align-self: stretch; background: rgba(255,255,255,0.16); color: #fff; border: 1px solid rgba(255,255,255,.22);
     border-radius: 7px; padding: 7px 11px; font-size: 12px; font-weight: 800;
-    font-family: inherit; cursor: pointer;
+    font-family: inherit; cursor: pointer; white-space: nowrap;
   }
+  #toast .toastFollow { background: rgba(255,255,255,0.24); }
   @keyframes resultBannerIn {
     from { opacity: 0; transform: translateY(-8px) scale(.99); }
     to { opacity: 1; transform: translateY(0) scale(1); }
@@ -692,9 +694,9 @@
     <span class="ptTag" id="ptTag"></span>
     <span class="ptResult" id="ptResult"></span>
   </div>
-  </div>
 
   <div id="toast" role="status" aria-live="polite"></div>
+  </div>
 
   <div class="form" id="form">
     <label class="label" for="appliance">Appliance</label>
@@ -2169,6 +2171,22 @@
   var lastLoggedId = null;
   var toastTimer = null;
 
+  function openToastFollowUp(id) {
+    var testId = Number(id);
+    renderFollowUp();
+
+    var item = el.followContainer.querySelector('[data-id="' + testId + '"]');
+    if (!item) {
+      showAllFails = true;
+      renderFollowUp();
+      item = el.followContainer.querySelector('[data-id="' + testId + '"]');
+    }
+
+    var body = document.getElementById('fb-' + testId);
+    if (body) body.classList.add('open');
+    if (item) item.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
   function showToast(test) {
     var el2 = document.getElementById('toast');
     var passed = test.result === 'pass';
@@ -2178,6 +2196,9 @@
     var nextLine = passed && state.tagNumber
       ? '<div class="nextTag">Next tag <strong>' + escapeHtml(state.tagNumber) + '</strong></div>'
       : (!passed ? '<div class="nextTag">Complete failure details below</div>' : '');
+    var followButton = passed
+      ? ''
+      : '<button class="toastFollow" id="toastFollowBtn" data-id="' + test.id + '">Follow up</button>';
 
     el2.className = test.result;
     el2.innerHTML =
@@ -2187,14 +2208,20 @@
         (meta ? '<div class="resultMeta">' + meta + '</div>' : '') +
         nextLine +
       '</div>' +
+      followButton +
       '<button class="undo" id="undoBtn">Undo</button>';
     void el2.offsetWidth;
     el2.classList.add('show');
 
     document.getElementById('undoBtn').addEventListener('click', undoLast);
+    if (!passed) {
+      document.getElementById('toastFollowBtn').addEventListener('click', function () {
+        openToastFollowUp(this.getAttribute('data-id'));
+      });
+    }
 
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { el2.classList.remove('show'); }, passed ? 4000 : 5000);
+    toastTimer = setTimeout(function () { el2.classList.remove('show'); }, 10000);
   }
 
   function undoLast() {
@@ -2213,6 +2240,7 @@
       typeTouched = true;
     }
     lastLoggedId = null;
+    clearTimeout(toastTimer);
     document.getElementById('toast').classList.remove('show');
     syncInputs();
     renderTypeSelector();
