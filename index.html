@@ -646,6 +646,9 @@
   .clearChoice input { width: 18px; height: 18px; margin: 0; }
   .clearChoice.disabled { opacity: .42; cursor: default; }
   .clearChoiceCount { color: #a1a1aa; font-size: 11px; white-space: nowrap; }
+  .clearChoiceFresh { margin-top: 8px; border: 1px solid #fecaca; border-radius: 7px; color: #991b1b; }
+  .clearChoiceFresh input { accent-color: #b91c1c; }
+  html[data-theme="dark"] .clearChoiceFresh { border-color:#7f1d1d; color:#fca5a5; }
   .clearModalActions { display: flex; justify-content: flex-end; gap: 7px; margin-top: 14px; }
   .clearModalActions button {
     padding: 9px 12px; border: 1px solid #d4d4d8; background: #fff; border-radius: 6px;
@@ -949,7 +952,6 @@
       <div class="settingHint" id="storageStat">&nbsp;</div>
       <div class="dataBtns">
         <button id="clearItemsBtn">Clear stored items</button>
-        <button id="freshStartBtn" class="danger">Fresh start — clear everything</button>
       </div>
     </div>
 
@@ -964,7 +966,7 @@
 <div class="clearModal" id="clearStoredModal" aria-hidden="true">
   <div class="clearModalCard" role="dialog" aria-modal="true" aria-labelledby="clearStoredTitle">
     <div class="clearModalTitle" id="clearStoredTitle">Clear stored items</div>
-    <div class="clearModalHint">Tick only what you want to remove. Logged test records are kept. Clearing saved site / job entries does not delete tests. Clearing photos removes the photo attachments from those records.</div>
+    <div class="clearModalHint">Select individual categories to remove, or choose Fresh start — clear everything to return the app to its first-run state. Logged test records are kept unless Fresh start is selected.</div>
     <label class="clearChoice" data-clear-row="items">
       <input type="checkbox" data-clear-kind="items">
       <span>Appliance names</span><span class="clearChoiceCount" data-clear-count="items"></span>
@@ -984,6 +986,10 @@
     <label class="clearChoice" data-clear-row="photos">
       <input type="checkbox" data-clear-kind="photos">
       <span>All photos</span><span class="clearChoiceCount" data-clear-count="photos"></span>
+    </label>
+    <label class="clearChoice clearChoiceFresh" data-clear-row="fresh">
+      <input type="checkbox" data-clear-kind="fresh">
+      <span>Fresh start — clear everything</span><span class="clearChoiceCount">Reset app</span>
     </label>
     <div class="clearModalActions">
       <button id="clearStoredCancel">Cancel</button>
@@ -3295,7 +3301,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v83';
+  var APP_VERSION = 'v84';
 
   function applyTheme() {
     var pref = state.theme || 'system';
@@ -4137,7 +4143,9 @@
   function updateClearStoredConfirm() {
     var btn = document.getElementById('clearStoredConfirm');
     var checked = document.querySelectorAll('#clearStoredModal [data-clear-kind]:checked').length;
+    var fresh = document.querySelector('[data-clear-kind="fresh"]');
     btn.disabled = !checked;
+    btn.textContent = fresh && fresh.checked ? 'Fresh start' : 'Clear selected';
   }
 
   function renderClearStoredModal() {
@@ -4152,6 +4160,12 @@
       row.classList.toggle('disabled', !n);
       countNode.textContent = n + (kind === 'photos' ? (n === 1 ? ' photo' : ' photos') : (n === 1 ? ' entry' : ' entries'));
     });
+    var fresh = document.querySelector('[data-clear-kind="fresh"]');
+    if (fresh) {
+      fresh.checked = false;
+      fresh.disabled = false;
+      document.querySelector('[data-clear-row="fresh"]').classList.remove('disabled');
+    }
     updateClearStoredConfirm();
     return counts;
   }
@@ -4163,11 +4177,7 @@
   }
 
   function openClearStoredModal() {
-    var counts = renderClearStoredModal();
-    if (!(counts.items || counts.locations || counts.reasons || counts.jobs || counts.photos)) {
-      alert('There are no stored entries or photos to clear.');
-      return;
-    }
+    renderClearStoredModal();
     var modal = document.getElementById('clearStoredModal');
     modal.classList.add('show');
     modal.setAttribute('aria-hidden', 'false');
@@ -4176,7 +4186,17 @@
   }
 
   document.getElementById('clearStoredModal').addEventListener('change', function (e) {
-    if (e.target.matches('[data-clear-kind]')) updateClearStoredConfirm();
+    if (!e.target.matches('[data-clear-kind]')) return;
+    var kind = e.target.getAttribute('data-clear-kind');
+    if (e.target.checked && kind === 'fresh') {
+      document.querySelectorAll('#clearStoredModal [data-clear-kind]:not([data-clear-kind="fresh"])').forEach(function (input) {
+        input.checked = false;
+      });
+    } else if (e.target.checked) {
+      var fresh = document.querySelector('[data-clear-kind="fresh"]');
+      if (fresh) fresh.checked = false;
+    }
+    updateClearStoredConfirm();
   });
 
   document.getElementById('clearStoredModal').addEventListener('click', function (e) {
@@ -4191,6 +4211,37 @@
       selected[input.getAttribute('data-clear-kind')] = true;
     });
     if (!Object.keys(selected).length) return;
+
+    if (selected.fresh) {
+      var message =
+        'Fresh start and clear EVERYTHING from this app on this device?\n\n' +
+        'This removes:\n' +
+        '• all logged tests\n' +
+        '• all photos\n' +
+        '• remembered appliance names, locations and fail reasons\n' +
+        '• saved site / job entries\n' +
+        '• current job, tag and form data\n' +
+        '• technician, instrument and calibration changes\n' +
+        '• saved signature and app preferences\n\n' +
+        'The app will reload with its original defaults. This cannot be undone. Export anything you need first.';
+
+      if (!confirm(message)) return;
+
+      closeClearStoredModal();
+      clearTimeout(toastTimer);
+      Object.keys(photoUrls).forEach(function (id) {
+        try { URL.revokeObjectURL(photoUrls[id]); } catch (e) {}
+      });
+      photoUrls = {};
+      try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+
+      photoClear().catch(function () {
+        // Local state is still cleared even if IndexedDB is unavailable.
+      }).then(function () {
+        window.location.reload();
+      });
+      return;
+    }
 
     if (selected.items) {
       state.recentItems = [];
@@ -4245,34 +4296,6 @@
 
   document.getElementById('clearItemsBtn').addEventListener('click', openClearStoredModal);
 
-  document.getElementById('freshStartBtn').addEventListener('click', function () {
-    var message =
-      'Fresh start and clear EVERYTHING from this app on this device?\n\n' +
-      'This removes:\n' +
-      '• all logged tests\n' +
-      '• all photos\n' +
-      '• remembered appliance names, locations and fail reasons\n' +
-      '• saved site / job entries\n' +
-      '• current job, tag and form data\n' +
-      '• technician, instrument and calibration changes\n' +
-      '• saved signature and app preferences\n\n' +
-      'The app will reload with its original defaults. This cannot be undone. Export anything you need first.';
-
-    if (!confirm(message)) return;
-
-    clearTimeout(toastTimer);
-    Object.keys(photoUrls).forEach(function (id) {
-      try { URL.revokeObjectURL(photoUrls[id]); } catch (e) {}
-    });
-    photoUrls = {};
-    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
-
-    photoClear().catch(function () {
-      // Local state is still cleared even if IndexedDB is unavailable.
-    }).then(function () {
-      window.location.reload();
-    });
-  });
 
   document.getElementById('settingsToggle').addEventListener('click', function () {
     togglePanel(document.getElementById('settingsPanel'),
