@@ -725,6 +725,15 @@
       <button class="typeButton" data-type="3 Phase">3 Phase</button>
     </div>
 
+    <div id="safetyMethodWrap">
+      <label class="label">Insulation safety test</label>
+      <div class="segRow" id="safetyMethodRow">
+        <button data-safety-method="insulation" class="on">Insulation Resistance</button>
+        <button data-safety-method="leakage">Leakage Testing</button>
+      </div>
+      <div class="settingHint">Selecting Leakage Testing replaces the insulation-resistance test for this item.</div>
+    </div>
+
     <div id="portWrap" style="display:none">
       <label class="label">Outlets on this device</label>
       <div class="segRow" id="portPresets">
@@ -934,6 +943,7 @@
     location: '',
     tagNumber: '',
     testType: 'Class 1',
+    safetyMethod: 'insulation',
     notes: '',
     recentItems: [],
     technician: 'Martin Nguyen',
@@ -972,6 +982,12 @@
   var MICROWAVE = 'Microwave';
   var VISUAL = 'Visual';
   var THREE_PHASE = '3 Phase';
+  var INSULATION_METHOD = 'insulation';
+  var LEAKAGE_METHOD = 'leakage';
+
+  function leakageMethodEligible(testType) {
+    return testType === 'Class 1' || testType === 'Class 2' || testType === MICROWAVE;
+  }
 
   var ACTIONS = [
     '',
@@ -1018,6 +1034,8 @@
     notes: document.getElementById('notes'),
     chipRow: document.getElementById('chipRow'),
     typeSelector: document.getElementById('typeSelector'),
+    safetyMethodWrap: document.getElementById('safetyMethodWrap'),
+    safetyMethodRow: document.getElementById('safetyMethodRow'),
     testsList: document.getElementById('testsList'),
     testsContainer: document.getElementById('testsContainer'),
     countTotal: document.getElementById('countTotal'),
@@ -1128,12 +1146,16 @@
       state.tests.forEach(function (t) {
         var r = normaliseResult(t.result);
         if (r) t.result = r;
+        t.safetyMethod = (t.safetyMethod === LEAKAGE_METHOD && leakageMethodEligible(t.testType))
+          ? LEAKAGE_METHOD : INSULATION_METHOD;
+        if (t.SampleValue2 === undefined || t.SampleValue2 === null) t.SampleValue2 = '';
       });
       state.appliance = data.appliance || '';
       state.site = data.site || '';
       state.location = data.location || '';
       state.tagNumber = data.tagNumber || '';
       state.testType = data.testType || 'Class 1';
+      state.safetyMethod = data.safetyMethod === LEAKAGE_METHOD ? LEAKAGE_METHOD : INSULATION_METHOD;
       state.recentItems = data.recentItems || [];
       state.itemTypes = data.itemTypes || {};
       state.itemPorts = data.itemPorts || {};
@@ -1422,6 +1444,15 @@
   function renderConditionalFields() {
     var multi = state.testType === MULTI;
     var mw = state.testType === MICROWAVE;
+    var methodEligible = leakageMethodEligible(state.testType);
+    if (!methodEligible) state.safetyMethod = INSULATION_METHOD;
+
+    // Electrical leakage current replaces insulation resistance; it is not an extra test.
+    el.safetyMethodWrap.style.display = methodEligible ? '' : 'none';
+    el.safetyMethodRow.querySelectorAll('[data-safety-method]').forEach(function (b) {
+      b.classList.toggle('on', b.getAttribute('data-safety-method') === state.safetyMethod);
+    });
+
     // Visual is inspection only, so neither panel applies
     el.portWrap.style.display = multi ? '' : 'none';
     el.mwWrap.style.display = mw ? '' : 'none';
@@ -1928,6 +1959,16 @@
           }).join('') +
         '</div>' +
 
+        (leakageMethodEligible(t.testType)
+          ? '<label class="label">Insulation safety test</label>' +
+            '<div class="editRow">' +
+              '<button data-emethod="' + INSULATION_METHOD + '" class="' +
+                ((t.safetyMethod || INSULATION_METHOD) === INSULATION_METHOD ? 'on' : '') + '">Insulation Resistance</button>' +
+              '<button data-emethod="' + LEAKAGE_METHOD + '" class="' +
+                (t.safetyMethod === LEAKAGE_METHOD ? 'on' : '') + '">Leakage Testing</button>' +
+            '</div>'
+          : '') +
+
         ((t.testType === MULTI)
           ? '<label class="label">Outlets on this device</label>' +
             '<div class="editRow">' +
@@ -2004,6 +2045,13 @@
     t.location = (editDraft.location || '').trim();
     t.notes = (editDraft.notes || '').trim();
     t.testType = editDraft.testType;
+    t.safetyMethod = leakageMethodEligible(t.testType) && editDraft.safetyMethod === LEAKAGE_METHOD
+      ? LEAKAGE_METHOD : INSULATION_METHOD;
+    if (t.safetyMethod === LEAKAGE_METHOD) {
+      t.SampleValue2 = String(editDraft.SampleValue2 || sampleValue2(t));
+    } else {
+      t.SampleValue2 = '';
+    }
     t.result = editDraft.result;
     t.passedItems = (editDraft.passedItems || []).slice();
     t.failedItems = failedFrom(t.passedItems);
@@ -2158,6 +2206,7 @@
       state.location = t.location || state.location;
       state.tagNumber = t.tagNumber;
       state.testType = t.testType || state.testType;
+      state.safetyMethod = (t.safetyMethod === LEAKAGE_METHOD) ? LEAKAGE_METHOD : INSULATION_METHOD;
       state.notes = t.notes || '';
       state.passedItems = t.passedItems || allPassed();
       typeTouched = true;
@@ -2259,11 +2308,19 @@
       location: state.location.trim(),
       tagNumber: state.tagNumber.trim(),
       testType: state.testType,
+      safetyMethod: leakageMethodEligible(state.testType) ? state.safetyMethod : INSULATION_METHOD,
+      SampleValue2: '',
       result: result,
       date: now.toLocaleDateString('en-AU'),
       time: now.toLocaleTimeString('en-AU', { hour: '2-digit', minute: '2-digit' }),
       notes: state.notes.trim()
     });
+
+    // Demo-only electrical leakage-current reading. Stored internally as SampleValue2;
+    // the report exposes it only as "Leakage Current Result".
+    if (state.tests[0].safetyMethod === LEAKAGE_METHOD) {
+      state.tests[0].SampleValue2 = sampleValue2(state.tests[0]);
+    }
 
     rememberJobProfile(state.tests[0]);
     state.recentLocations = remember(state.recentLocations, state.location);
@@ -2366,12 +2423,24 @@
   }
 
 
+  // Stable demo value for an electrical leakage-current test. The stored/internal
+  // field is SampleValue2; reports label it only as "Leakage Current Result".
+  function sampleValue2(t) {
+    if (t.SampleValue2 !== undefined && t.SampleValue2 !== null && String(t.SampleValue2).trim() !== '') {
+      return String(t.SampleValue2).trim();
+    }
+    if (t.safetyMethod !== LEAKAGE_METHOD || !leakageMethodEligible(t.testType)) return '';
+    var x = seededUnit(String(t.tagNumber || '') + '|' + String(t.id || '') + '|' +
+                       String(t.appliance || '') + '|leakage-current');
+    return (0.10 + x * 0.70).toFixed(2);
+  }
+
   function buildCSV() {
     var headers = ['Asset ID', 'Description', 'Client', 'Site', 'Location', 'Job Reference',
                    'Technician', 'Test Instrument', 'Instrument Calibration', 'Test Type', 'Result', 'Test Date', 'Test Date ISO', 'Time',
                    'Test Period', 'Next Test Date', 'Next Test Date ISO',
                    'Date Completed', 'Make', 'Model', 'Serial Number', 'Polarity',
-                   'Sample Value',
+                   'Sample Value', 'Insulation Safety Test', 'SampleValue2',
                    'Outlets', 'Failed Outlets', 'Leakage mW/cm2', 'Visual Result']
                    .concat(INSPECTION_ITEMS)
                    .concat(['Failed Inspection Items', 'Fail Reason', 'Action Taken',
@@ -2393,6 +2462,8 @@
           var v = sampleValues(t);
           return Array.isArray(v) ? v.join('; ') : v;
         })(),
+        (t.safetyMethod === LEAKAGE_METHOD ? 'Leakage Current' : 'Insulation Resistance'),
+        sampleValue2(t),
         (t.testType === MULTI ? effectivePortCount(t) : ''), (t.failedPorts || []).join('; '), t.leakage || '',
         failed.length ? 'Fail' : 'Pass'
       ].concat(perItem).concat([
@@ -2851,7 +2922,7 @@
         '</colgroup>' +
         '<thead><tr>' +
           '<th>ASSET ID</th><th>ASSET</th><th>TEST</th>' +
-          '<th>EARTH CONTINUITY RESULT</th><th>INSULATION</th><th>POLARITY</th>' +
+          '<th>EARTH CONTINUITY RESULT</th><th>INSULATION / LEAKAGE</th><th>POLARITY</th>' +
           '<th>INSPECTION</th><th class="rpt-r">RESULT</th>' +
         '</tr></thead><tbody>' +
         items.map(function (t) {
@@ -2873,10 +2944,19 @@
           }
 
           var ins = spec.insulation ? '&gt; 19.99 M\u03a9' : '&mdash;';
+          if (t.safetyMethod === LEAKAGE_METHOD && leakageMethodEligible(t.testType)) {
+            var leakageCurrent = sampleValue2(t);
+            ins = leakageCurrent
+              ? '<span class="rpt-sub">Leakage Current Result</span><br>' + esc(leakageCurrent) + ' mA'
+              : '&mdash;';
+          }
           var pol = spec.polarity ? 'Pass' : '&mdash;';
 
           if (t.testType === MICROWAVE && t.leakage !== '') {
-            ins = esc(t.leakage) + ' mW/cm\u00b2';
+            var mwLeak = '<span class="rpt-sub">Microwave leakage</span><br>' +
+              esc(t.leakage) + ' mW/cm\u00b2';
+            ins = (t.safetyMethod === LEAKAGE_METHOD && sampleValue2(t))
+              ? ins + '<br>' + mwLeak : mwLeak;
           }
 
           var sub = [];
@@ -3293,6 +3373,8 @@
         serial: get(r, 'Serial Number'),
         polarity: get(r, 'Polarity'),
         earthContinuity: get(r, 'Sample Value') || get(r, 'Earth Continuity Value (Ω)'),
+        safetyMethod: (get(r, 'Insulation Safety Test').toLowerCase().indexOf('leakage') !== -1) ? LEAKAGE_METHOD : INSULATION_METHOD,
+        SampleValue2: get(r, 'SampleValue2'),
         portCount: (get(r, 'Test Type') === MULTI)
           ? effectivePortCount({
               testType: MULTI,
@@ -3995,6 +4077,15 @@
     save();
   });
 
+  el.safetyMethodRow.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-safety-method]');
+    if (!btn) return;
+    state.safetyMethod = btn.getAttribute('data-safety-method') === LEAKAGE_METHOD
+      ? LEAKAGE_METHOD : INSULATION_METHOD;
+    renderConditionalFields();
+    save();
+  });
+
   el.testSearch.addEventListener('input', function () {
     listSearch = this.value.trim().toLowerCase();
     renderList();
@@ -4044,17 +4135,33 @@
       return;
     }
 
+    var methodBtn = e.target.closest('[data-emethod]');
+    if (methodBtn && editDraft) {
+      editDraft.safetyMethod = methodBtn.getAttribute('data-emethod') === LEAKAGE_METHOD
+        ? LEAKAGE_METHOD : INSULATION_METHOD;
+      if (editDraft.safetyMethod === LEAKAGE_METHOD && !editDraft.SampleValue2) {
+        editDraft.SampleValue2 = sampleValue2(editDraft);
+      }
+      el.testsContainer.querySelectorAll('[data-emethod]').forEach(function (b) {
+        b.classList.toggle('on', b.getAttribute('data-emethod') === editDraft.safetyMethod);
+      });
+      return;
+    }
+
     var ty = e.target.closest('[data-etype]');
     if (ty && editDraft) {
       captureDraftFields();
       var was = editDraft.testType;
+      var wasMethodEligible = leakageMethodEligible(was);
       editDraft.testType = ty.getAttribute('data-etype');
+      if (!leakageMethodEligible(editDraft.testType)) editDraft.safetyMethod = INSULATION_METHOD;
       if (editDraft.testType === MULTI && !Number(editDraft.portCount)) {
         editDraft.portCount = 4;
       }
-      // the extra fields differ per type, so redraw rather than just restyle
+      // The extra fields and leakage-method selector differ per type, so redraw when needed.
       if (was === MULTI || editDraft.testType === MULTI ||
-          was === MICROWAVE || editDraft.testType === MICROWAVE) {
+          was === MICROWAVE || editDraft.testType === MICROWAVE ||
+          wasMethodEligible !== leakageMethodEligible(editDraft.testType)) {
         renderList();
       } else {
         el.testsContainer.querySelectorAll('[data-etype]').forEach(function (b) {
