@@ -2711,6 +2711,40 @@
     return { order: order, map: map };
   }
 
+  // Fail Report ordering is deliberately different from the other reports.
+  // Items remain in the order they were found (oldest to newest) within each
+  // location. A location is positioned according to its MOST RECENT failure,
+  // so returning to an earlier area moves that one combined section later in
+  // the report rather than creating a duplicate location heading.
+  function groupFailuresByRecentArea(list) {
+    var chronological = list.slice().sort(function (a, b) {
+      var ai = Number(a.id) || 0, bi = Number(b.id) || 0;
+      if (ai !== bi) return ai - bi;
+      return String(a.time || '').localeCompare(String(b.time || ''));
+    });
+    var groups = {}, sequence = 0;
+
+    chronological.forEach(function (t) {
+      var rawArea = (t.location || '').trim().replace(/\s+/g, ' ') || 'Unspecified';
+      var key = rawArea.toLocaleLowerCase();
+      if (!groups[key]) {
+        groups[key] = { name: rawArea, items: [], lastSeen: -1 };
+      }
+      groups[key].items.push(t);
+      groups[key].lastSeen = sequence++;
+    });
+
+    var orderedGroups = Object.keys(groups).map(function (key) { return groups[key]; })
+      .sort(function (a, b) { return a.lastSeen - b.lastSeen; });
+
+    var order = [], map = {};
+    orderedGroups.forEach(function (group) {
+      order.push(group.name);
+      map[group.name] = group.items;
+    });
+    return { order: order, map: map };
+  }
+
   function contactBlock() {
     var c = COMPANY;
     var lines = [];
@@ -3004,7 +3038,7 @@
     var failures = state.tests.filter(function (t) { return t.result === 'fail'; });
     if (!failures.length) return '';
 
-    var g = groupByArea(failures);
+    var g = groupFailuresByRecentArea(failures);
     var body = g.order.map(function (area) {
       return '<h2 class="rpt-h2">' + esc(area.toUpperCase()) + '</h2>' +
         g.map[area].map(function (t) {
@@ -3166,7 +3200,7 @@
 
   // ================= settings =================
 
-  var APP_VERSION = 'v79';
+  var APP_VERSION = 'v80';
 
   function applyTheme() {
     var pref = state.theme || 'system';
